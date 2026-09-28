@@ -68,6 +68,26 @@ export function producerHistory(charts, slug) {
   return name ? { name, tracks: [...tracks.values()].sort((a, b) => a.bestRank - b.bestRank) } : null;
 }
 
+/**
+ * Producers to watch this week: points per charted track (#1 = 20 … #20 = 1),
+ * +5 per breakout, +2 per new entry. Ties broken by best rank.
+ * @returns {{ name: string, slug: string, points: number, tracks: number, bestRank: number, top: object }[]}
+ */
+export function topProducers(chart, n = 5) {
+  const size = chart.entries.length;
+  const by = new Map();
+  for (const e of chart.entries) {
+    const slug = producerSlug(e.producer);
+    const p = by.get(slug) ?? { name: e.producer, slug, points: 0, tracks: 0, bestRank: Infinity, top: e };
+    const m = movement(e);
+    p.points += size + 1 - e.rank + (m.kind === 'breakout' ? 5 : 0) + (m.kind === 'new' ? 2 : 0);
+    p.tracks += 1;
+    if (e.rank < p.bestRank) { p.bestRank = e.rank; p.top = e; }
+    by.set(slug, p);
+  }
+  return [...by.values()].sort((a, b) => b.points - a.points || a.bestRank - b.bestRank).slice(0, n);
+}
+
 /** Returns a list of problems with a chart file (empty = valid) */
 export function validateChart(c) {
   const errs = [];

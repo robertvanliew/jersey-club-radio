@@ -4,7 +4,7 @@ import { usePlayer } from '../context/PlayerContext';
 import { useCrateSafe } from '../context/CrateContext';
 import { TrackCard } from '../components/TrackCard';
 import { MostPlayed } from '../components/MostPlayed';
-import { RisingNowSection } from '../components/RisingNow';
+import { RisingNowSection, ProducersToWatch } from '../components/RisingNow';
 import { JerseyClubArticles } from '../components/JerseyClubArticles';
 import { Visualizer } from '../components/Visualizer';
 import { SocialWidgets } from '../components/SocialWidgets';
@@ -601,9 +601,12 @@ export function Home() {
         <RisingNowSection />
         </div>
 
-        {/* Most Played sidebar — match playlist height, no scroll */}
-        <div className="lg:col-span-1" style={{ height: 'calc(100vh - 300px)' }}>
-          <MostPlayed />
+        {/* Right column: Most Played (matches playlist height), then Producers to Watch beside Rising Now */}
+        <div className="lg:col-span-1 flex flex-col gap-6 min-w-0">
+          <div style={{ height: 'calc(100vh - 300px)' }}>
+            <MostPlayed />
+          </div>
+          <ProducersToWatch />
         </div>
       </div>
 

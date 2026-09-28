@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router';
 import { ArrowUp, ArrowDown, Minus, Flame, Music2, Headphones, Sparkles, ChevronRight } from 'lucide-react';
 import { latestWeek, getChart, type ChartEntry } from '../../data/charts';
-import { movement, producerSlug, formatWeek } from '../../data/charts/chartUtils.mjs';
+import { movement, producerSlug, formatWeek, topProducers } from '../../data/charts/chartUtils.mjs';
 
 export const CARD_STYLE: React.CSSProperties = {
   background: '#0A0716',
@@ -95,6 +95,43 @@ export function RisingNowList({ entries }: { entries: ChartEntry[] }) {
     <ol className="flex flex-col gap-2 list-none p-0 m-0">
       {entries.map(e => <RisingNowRow key={e.rank} entry={e} />)}
     </ol>
+  );
+}
+
+/** Homepage sidebar card: this week's top producers from the Rising Now chart */
+export function ProducersToWatch() {
+  const chart = latestWeek ? getChart(latestWeek) : undefined;
+  if (!chart) return null;
+  const producers = topProducers(chart, 5);
+  return (
+    <section className="flex flex-col p-3 md:p-4" style={CARD_STYLE} aria-labelledby="producers-heading">
+      <h2 id="producers-heading" className="text-base font-bold text-white flex items-center gap-2">
+        <Sparkles className="w-4 h-4 text-[#FFD700]" /> Producers to Watch
+      </h2>
+      <p className="text-[11px] text-[#E0AAFF] font-semibold mb-3">From this week's Rising Now chart</p>
+      <ol className="flex flex-col gap-1.5 list-none p-0 m-0">
+        {producers.map((p, i) => (
+          <li key={p.slug}>
+            <Link
+              to={`/producers/${p.slug}`}
+              className="flex items-center gap-3 p-2 rounded-lg hover:bg-[rgba(157,0,255,0.08)] transition-colors"
+            >
+              <span className="w-5 text-center text-sm font-black" style={{ color: i === 0 ? '#FFD700' : '#5B4F70' }}>{i + 1}</span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold text-white truncate">{p.name}</p>
+                <p className="text-[11px] text-[#9B8FB0] truncate">
+                  {p.tracks > 1 ? `${p.tracks} tracks · ` : ''}#{p.bestRank} {p.top.title}
+                </p>
+              </div>
+              <ChevronRight className="w-3.5 h-3.5 text-[#5B4F70] shrink-0" />
+            </Link>
+          </li>
+        ))}
+      </ol>
+      <Link to="/hot" className="flex items-center gap-0.5 text-xs font-bold text-[#C080FF] hover:text-white mt-3 self-end">
+        Full chart <ChevronRight className="w-3.5 h-3.5" />
+      </Link>
+    </section>
   );
 }
 

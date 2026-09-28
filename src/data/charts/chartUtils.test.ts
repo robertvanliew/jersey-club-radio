@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { movement, producerSlug, formatWeek, publishedWeeks, neighbours, validateChart, chartJsonLd } from './chartUtils.mjs';
+import { movement, producerSlug, formatWeek, publishedWeeks, neighbours, validateChart, chartJsonLd, topProducers } from './chartUtils.mjs';
 
 describe('movement', () => {
   it.each([
@@ -52,6 +52,15 @@ describe('validateChart', () => {
       expect(validateChart(JSON.parse(readFileSync(join(dir, f), 'utf8'))), f).toEqual([]);
     }
   });
+});
+
+it('topProducers: points by rank, bonuses, multiple tracks add up', () => {
+  const e = (rank: number, producer: string, lastWeekRank: number | null = rank) => ({ rank, producer, lastWeekRank });
+  const chart = { week: '2026-09-28', entries: [e(1, 'Solo'), e(2, 'Duo'), e(3, 'Duo'), e(4, 'Riser', 12), e(5, 'Fresh', null)] };
+  const top = topProducers(chart, 3);
+  expect(top.map(p => p.name)).toEqual(['Duo', 'Riser', 'Solo']); // Duo: 4+3=7; Riser: 2+5=7 (worse best rank); Solo: 5
+  expect(top[0]).toMatchObject({ slug: 'duo', tracks: 2, bestRank: 2 });
+  expect(topProducers(chart, 10).find(p => p.name === 'Fresh')?.points).toBe(1 + 2);
 });
 
 it('chartJsonLd: MusicPlaylist of MusicRecordings with producer', () => {
