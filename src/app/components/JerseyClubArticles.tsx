@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, ArrowRight, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router';
 import { articles } from '../../data/news';
+import { plainText } from '../../data/news/newsUtils.mjs';
 
 /* ─── Types ──────────────────────────────────────────────────────── */
 interface Article {
@@ -64,11 +65,15 @@ const ARTICLES: Article[] = [
 ];
 
 /* Once our own article retelling a source is published, show and link ours instead */
-const SHOWN: (Article & { internal?: string })[] = ARTICLES.map(a => {
+type Shown = Article & { internal?: string; excerpt?: string; tag?: string };
+const SHOWN: Shown[] = ARTICLES.map(a => {
     const own = articles.find(n => n.sources[0]?.url === a.url);
-    return own
-        ? { ...a, title: own.title, source: 'Jersey Club Radio', author: null, published_date: own.date, summary: own.dek, internal: `/news/${own.slug}` }
-        : a;
+    if (!own) return a;
+    const first = own.body.find(b => 'p' in b) as { p: string } | undefined;
+    return {
+        ...a, title: own.title, source: 'Jersey Club Radio', author: null, published_date: own.date,
+        summary: own.dek, internal: `/news/${own.slug}`, tag: own.tag, excerpt: first ? plainText(first.p) : undefined,
+    };
 });
 
 /* ─── Palette ────────────────────────────────────────────────────── */
@@ -151,7 +156,7 @@ export function JerseyClubArticles() {
 
                 {/* ── MAIN CARD ── */}
                 <motion.div
-                    className="relative flex overflow-hidden rounded-2xl"
+                    className="relative flex overflow-hidden rounded-2xl flex-1"
                     style={{ minHeight: '440px', background: '#07010E' }}
                     initial={{ clipPath: 'inset(0 0 100% 0 round 16px)' }}
                     animate={isInView ? { clipPath: 'inset(0 0 0% 0 round 16px)' } : {}}
@@ -352,14 +357,26 @@ export function JerseyClubArticles() {
 
                                     {/* Summary */}
                                     <motion.p
-                                        className="text-sm leading-relaxed"
-                                        style={{ color: '#66567E' }}
+                                        className="text-base leading-relaxed font-medium"
+                                        style={{ color: '#CDBFE3' }}
                                         initial={{ opacity: 0, y: 6 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: 0.28, duration: 0.38 }}
                                     >
                                         {art.summary}
                                     </motion.p>
+                                    {/* Opening paragraph of our own article, for a fuller editorial feature */}
+                                    {art.excerpt && (
+                                        <motion.p
+                                            className="text-sm leading-relaxed mt-3 line-clamp-4"
+                                            style={{ color: '#8E80A8' }}
+                                            initial={{ opacity: 0, y: 6 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: 0.36, duration: 0.38 }}
+                                        >
+                                            {art.excerpt}
+                                        </motion.p>
+                                    )}
                                 </motion.div>
                             </AnimatePresence>
                         </div>
@@ -446,7 +463,57 @@ export function JerseyClubArticles() {
             </div>
 
             {/* Reserved right column */}
-            <div className="lg:col-span-1" />
+            {/* ── TOP STORIES (Billboard-style numbered list) ── */}
+            <motion.aside
+                className="lg:col-span-1 flex flex-col lg:mt-[42px] rounded-2xl p-5"
+                style={{ background: '#07010E', border: '1px solid rgba(157,0,255,0.14)' }}
+                initial={{ opacity: 0, y: 16 }}
+                animate={isInView ? { opacity: 1, y: 0 } : {}}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                aria-label="Top stories"
+            >
+                <div className="pt-3 mb-3" style={{ borderTop: '4px solid #fff' }}>
+                    <h3 className="text-white font-black uppercase tracking-tight text-xl leading-none" style={{ fontFamily: "'Archivo', sans-serif" }}>
+                        Top Stories
+                    </h3>
+                </div>
+                <ol className="flex flex-col list-none p-0 m-0 flex-1">
+                    {SHOWN.map((a, i) => {
+                        const active = i === idx;
+                        const label = (a.tag ?? a.angle).toUpperCase();
+                        return (
+                            <li key={a.url} style={{ borderTop: i ? '1px solid rgba(157,0,255,0.14)' : 'none' }}>
+                                <button
+                                    onClick={() => { jumpTo(i); setPaused(true); }}
+                                    className="w-full text-left flex gap-3 py-3 group"
+                                    aria-current={active ? 'true' : undefined}
+                                >
+                                    <span
+                                        className="text-2xl font-black leading-none w-7 shrink-0 transition-colors"
+                                        style={{ fontFamily: "'Archivo', sans-serif", color: active ? '#FF0080' : '#3A2D52' }}
+                                    >
+                                        {i + 1}
+                                    </span>
+                                    <span className="min-w-0">
+                                        <span className="block text-[9px] font-black tracking-[0.18em]" style={{ color: getPal(a.angle).text }}>{label}</span>
+                                        <span className={`block text-sm font-bold leading-snug mt-0.5 transition-colors ${active ? 'text-white' : 'text-[#B9A6D6] group-hover:text-white'}`}>
+                                            {a.title}
+                                        </span>
+                                        <span className="block text-[10px] text-[#6E6088] mt-0.5">
+                                            {a.source}{fmtDate(a.published_date) ? ` · ${fmtDate(a.published_date)}` : ''}
+                                        </span>
+                                    </span>
+                                </button>
+                            </li>
+                        );
+                    })}
+                </ol>
+                {SHOWN.some(a => a.internal) && (
+                    <Link to="/news" className="self-end inline-flex items-center gap-1 text-xs font-bold text-[#C080FF] hover:text-white mt-2">
+                        All stories <ArrowRight className="w-3 h-3" />
+                    </Link>
+                )}
+            </motion.aside>
         </div>
     );
 }
