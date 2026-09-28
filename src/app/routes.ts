@@ -25,6 +25,9 @@ const About = lazy(() => import('./pages/About').then(m => ({ default: m.About }
 const Admin = lazy(() => import('./pages/Admin').then(m => ({ default: m.Admin })));
 const Artists = lazy(() => import('./pages/Artists').then(m => ({ default: m.Artists })));
 const ArtistDetail = lazy(() => import('./pages/ArtistDetail').then(m => ({ default: m.ArtistDetail })));
+const HotPage = lazy(() => import('./pages/Hot').then(m => ({ default: m.HotPage })));
+const HotArchivePage = lazy(() => import('./pages/Hot').then(m => ({ default: m.HotArchivePage })));
+const ProducerPage = lazy(() => import('./pages/Hot').then(m => ({ default: m.ProducerPage })));
 
 export const router = createBrowserRouter([
   {
@@ -51,6 +54,10 @@ export const router = createBrowserRouter([
           { path: 'games/checkers', Component: Checkers },
           { path: 'artists', Component: Artists },
           { path: 'artists/:slug', Component: ArtistDetail },
+          { path: 'hot', Component: HotPage },
+          { path: 'hot/archive', Component: HotArchivePage },
+          { path: 'hot/:date', Component: HotPage },
+          { path: 'producers/:slug', Component: ProducerPage },
         ],
       },
       // Legal pages — standalone layout (no sidebar/player chrome)

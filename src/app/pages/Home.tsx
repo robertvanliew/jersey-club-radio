@@ -4,6 +4,7 @@ import { usePlayer } from '../context/PlayerContext';
 import { useCrateSafe } from '../context/CrateContext';
 import { TrackCard } from '../components/TrackCard';
 import { MostPlayed } from '../components/MostPlayed';
+import { RisingNowSection } from '../components/RisingNow';
 import { JerseyClubArticles } from '../components/JerseyClubArticles';
 import { Visualizer } from '../components/Visualizer';
 import { SocialWidgets } from '../components/SocialWidgets';
@@ -532,8 +533,10 @@ export function Home() {
 
       {/* Two-column layout — same height for playlist and sidebar */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6" style={{ alignItems: 'start' }}>
+        {/* Left column: playlist, then Rising Now directly under it */}
+        <div className="lg:col-span-2 flex flex-col gap-6 min-w-0">
         {/* Playlist */}
-        <div className="lg:col-span-2 flex flex-col rounded-xl" style={{ height: 'calc(100vh - 300px)', background: '#0A0716', border: '1px solid rgba(110,50,190,0.14)', borderRadius: '12px', fontFamily: "'General Sans', sans-serif" }}>
+        <div className="flex flex-col rounded-xl" style={{ height: 'calc(100vh - 300px)', background: '#0A0716', border: '1px solid rgba(110,50,190,0.14)', borderRadius: '12px', fontFamily: "'General Sans', sans-serif" }}>
           <div className="flex flex-col px-3 md:px-4 pt-3 md:pt-4 pb-1 md:pb-0 mb-2 md:mb-4">
             {/* Row 1: Title left, Play All right */}
             <div className="flex items-center justify-between gap-3">
@@ -593,6 +596,9 @@ export function Home() {
               </div>
             </div>
           )}
+        </div>
+
+        <RisingNowSection />
         </div>
 
         {/* Most Played sidebar — match playlist height, no scroll */}

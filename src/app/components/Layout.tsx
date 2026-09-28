@@ -33,7 +33,8 @@ interface LayoutProps {
 export function Layout({ children }: LayoutProps) {
   const { pathname } = useLocation();
   const { refreshTracks, isRefreshing, tracks, isPlaying, isFetchingMore, currentTrack } = usePlayer();
-  useTrackSEO(currentTrack);
+  // Chart/producer pages carry their own title, meta and JSON-LD
+  useTrackSEO(currentTrack, !/^\/(hot|producers)(\/|$)/.test(pathname));
   const { showFlashSale, dismissFlashSale } = useSuperFan();
   const crateCtx = useCrateSafe();
   const is24k = crateCtx?.is24k ?? false;

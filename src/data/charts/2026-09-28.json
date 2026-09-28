@@ -1,0 +1,371 @@
+{
+  "week": "2026-09-28",
+  "placeholder": true,
+  "entries": [
+    {
+      "rank": 1,
+      "title": "Placeholder Track 12",
+      "artist": "Placeholder Artist 12",
+      "producer": "Placeholder Producer C",
+      "originalSample": "Placeholder: flip of an original sample",
+      "bpm": 138,
+      "key": "8A",
+      "releaseDate": "2026-09-15",
+      "lastWeekRank": 12,
+      "weeksOnChart": 2,
+      "signal": {
+        "type": "tiktok",
+        "note": "Placeholder: TikTok sound usage up this week"
+      },
+      "links": {
+        "soundcloud": "https://soundcloud.com/jersey-club-radio"
+      }
+    },
+    {
+      "rank": 2,
+      "title": "Placeholder Track 5",
+      "artist": "Placeholder Artist 5",
+      "producer": "Placeholder Producer A",
+      "bpm": 143,
+      "key": "11B",
+      "releaseDate": "2026-09-15",
+      "lastWeekRank": 5,
+      "weeksOnChart": 2,
+      "signal": {
+        "type": "new",
+        "note": "Placeholder: new release"
+      },
+      "links": {
+        "soundcloud": "https://soundcloud.com/jersey-club-radio"
+      }
+    },
+    {
+      "rank": 3,
+      "title": "Placeholder Track 4",
+      "artist": "Placeholder Artist 4",
+      "producer": "Placeholder Producer E",
+      "originalSample": "Placeholder: flip of an original sample",
+      "bpm": 142,
+      "key": "7B",
+      "releaseDate": "2026-09-15",
+      "lastWeekRank": 4,
+      "weeksOnChart": 2,
+      "signal": {
+        "type": "listeners",
+        "note": "Placeholder: listener count climbing week over week"
+      },
+      "links": {
+        "soundcloud": "https://soundcloud.com/jersey-club-radio"
+      }
+    },
+    {
+      "rank": 4,
+      "title": "Placeholder Track 19",
+      "artist": "Placeholder Artist 19",
+      "producer": "Placeholder Producer E",
+      "bpm": 139,
+      "key": "9A",
+      "releaseDate": "2026-09-15",
+      "lastWeekRank": 19,
+      "weeksOnChart": 2,
+      "signal": {
+        "type": "listeners",
+        "note": "Placeholder: listener count climbing week over week"
+      },
+      "links": {
+        "soundcloud": "https://soundcloud.com/jersey-club-radio"
+      }
+    },
+    {
+      "rank": 5,
+      "title": "Placeholder Track 6",
+      "artist": "Placeholder Artist 6",
+      "producer": "Placeholder Producer B",
+      "bpm": 138,
+      "key": "8A",
+      "releaseDate": "2026-09-15",
+      "lastWeekRank": 6,
+      "weeksOnChart": 2,
+      "signal": {
+        "type": "tiktok",
+        "note": "Placeholder: TikTok sound usage up this week"
+      },
+      "links": {
+        "soundcloud": "https://soundcloud.com/jersey-club-radio"
+      }
+    },
+    {
+      "rank": 6,
+      "title": "Placeholder Track 7",
+      "artist": "Placeholder Artist 7",
+      "producer": "Placeholder Producer C",
+      "bpm": 139,
+      "key": "9A",
+      "releaseDate": "2026-09-15",
+      "lastWeekRank": 7,
+      "weeksOnChart": 2,
+      "signal": {
+        "type": "listeners",
+        "note": "Placeholder: listener count climbing week over week"
+      },
+      "links": {
+        "soundcloud": "https://soundcloud.com/jersey-club-radio"
+      }
+    },
+    {
+      "rank": 7,
+      "title": "Placeholder Track 21",
+      "artist": "Placeholder Artist 21",
+      "producer": "Placeholder Producer B",
+      "bpm": 141,
+      "key": "5A",
+      "releaseDate": "2026-09-15",
+      "lastWeekRank": null,
+      "weeksOnChart": 1,
+      "signal": {
+        "type": "tiktok",
+        "note": "Placeholder: TikTok sound usage up this week"
+      },
+      "links": {
+        "soundcloud": "https://soundcloud.com/jersey-club-radio"
+      }
+    },
+    {
+      "rank": 8,
+      "title": "Placeholder Track 8",
+      "artist": "Placeholder Artist 8",
+      "producer": "Placeholder Producer D",
+      "originalSample": "Placeholder: flip of an original sample",
+      "bpm": 140,
+      "key": "10A",
+      "releaseDate": "2026-09-15",
+      "lastWeekRank": 8,
+      "weeksOnChart": 2,
+      "signal": {
+        "type": "new",
+        "note": "Placeholder: new release"
+      },
+      "links": {
+        "soundcloud": "https://soundcloud.com/jersey-club-radio"
+      }
+    },
+    {
+      "rank": 9,
+      "title": "Placeholder Track 9",
+      "artist": "Placeholder Artist 9",
+      "producer": "Placeholder Producer E",
+      "bpm": 141,
+      "key": "5A",
+      "releaseDate": "2026-09-15",
+      "lastWeekRank": 9,
+      "weeksOnChart": 2,
+      "signal": {
+        "type": "tiktok",
+        "note": "Placeholder: TikTok sound usage up this week"
+      },
+      "links": {
+        "soundcloud": "https://soundcloud.com/jersey-club-radio"
+      }
+    },
+    {
+      "rank": 10,
+      "title": "Placeholder Track 10",
+      "artist": "Placeholder Artist 10",
+      "producer": "Placeholder Producer A",
+      "bpm": 142,
+      "key": "7B",
+      "releaseDate": "2026-09-15",
+      "lastWeekRank": 10,
+      "weeksOnChart": 2,
+      "signal": {
+        "type": "listeners",
+        "note": "Placeholder: listener count climbing week over week"
+      },
+      "links": {
+        "soundcloud": "https://soundcloud.com/jersey-club-radio"
+      }
+    },
+    {
+      "rank": 11,
+      "title": "Placeholder Track 22",
+      "artist": "Placeholder Artist 22",
+      "producer": "Placeholder Producer C",
+      "bpm": 142,
+      "key": "7B",
+      "releaseDate": "2026-09-15",
+      "lastWeekRank": null,
+      "weeksOnChart": 1,
+      "signal": {
+        "type": "listeners",
+        "note": "Placeholder: listener count climbing week over week"
+      },
+      "links": {
+        "soundcloud": "https://soundcloud.com/jersey-club-radio"
+      }
+    },
+    {
+      "rank": 12,
+      "title": "Placeholder Track 11",
+      "artist": "Placeholder Artist 11",
+      "producer": "Placeholder Producer B",
+      "bpm": 143,
+      "key": "11B",
+      "releaseDate": "2026-09-15",
+      "lastWeekRank": 11,
+      "weeksOnChart": 2,
+      "signal": {
+        "type": "new",
+        "note": "Placeholder: new release"
+      },
+      "links": {
+        "soundcloud": "https://soundcloud.com/jersey-club-radio"
+      }
+    },
+    {
+      "rank": 13,
+      "title": "Placeholder Track 13",
+      "artist": "Placeholder Artist 13",
+      "producer": "Placeholder Producer D",
+      "bpm": 139,
+      "key": "9A",
+      "releaseDate": "2026-09-15",
+      "lastWeekRank": 13,
+      "weeksOnChart": 2,
+      "signal": {
+        "type": "listeners",
+        "note": "Placeholder: listener count climbing week over week"
+      },
+      "links": {
+        "soundcloud": "https://soundcloud.com/jersey-club-radio"
+      }
+    },
+    {
+      "rank": 14,
+      "title": "Placeholder Track 14",
+      "artist": "Placeholder Artist 14",
+      "producer": "Placeholder Producer E",
+      "bpm": 140,
+      "key": "10A",
+      "releaseDate": "2026-09-15",
+      "lastWeekRank": 14,
+      "weeksOnChart": 2,
+      "signal": {
+        "type": "new",
+        "note": "Placeholder: new release"
+      },
+      "links": {
+        "soundcloud": "https://soundcloud.com/jersey-club-radio"
+      }
+    },
+    {
+      "rank": 15,
+      "title": "Placeholder Track 15",
+      "artist": "Placeholder Artist 15",
+      "producer": "Placeholder Producer A",
+      "bpm": 141,
+      "key": "5A",
+      "releaseDate": "2026-09-15",
+      "lastWeekRank": 15,
+      "weeksOnChart": 2,
+      "signal": {
+        "type": "tiktok",
+        "note": "Placeholder: TikTok sound usage up this week"
+      },
+      "links": {
+        "soundcloud": "https://soundcloud.com/jersey-club-radio"
+      }
+    },
+    {
+      "rank": 16,
+      "title": "Placeholder Track 16",
+      "artist": "Placeholder Artist 16",
+      "producer": "Placeholder Producer B",
+      "originalSample": "Placeholder: flip of an original sample",
+      "bpm": 142,
+      "key": "7B",
+      "releaseDate": "2026-09-15",
+      "lastWeekRank": 16,
+      "weeksOnChart": 2,
+      "signal": {
+        "type": "listeners",
+        "note": "Placeholder: listener count climbing week over week"
+      },
+      "links": {
+        "soundcloud": "https://soundcloud.com/jersey-club-radio"
+      }
+    },
+    {
+      "rank": 17,
+      "title": "Placeholder Track 23",
+      "artist": "Placeholder Artist 23",
+      "producer": "Placeholder Producer D",
+      "bpm": 143,
+      "key": "11B",
+      "releaseDate": "2026-09-15",
+      "lastWeekRank": null,
+      "weeksOnChart": 1,
+      "signal": {
+        "type": "new",
+        "note": "Placeholder: new release"
+      },
+      "links": {
+        "soundcloud": "https://soundcloud.com/jersey-club-radio"
+      }
+    },
+    {
+      "rank": 18,
+      "title": "Placeholder Track 17",
+      "artist": "Placeholder Artist 17",
+      "producer": "Placeholder Producer C",
+      "bpm": 143,
+      "key": "11B",
+      "releaseDate": "2026-09-15",
+      "lastWeekRank": 17,
+      "weeksOnChart": 2,
+      "signal": {
+        "type": "new",
+        "note": "Placeholder: new release"
+      },
+      "links": {
+        "soundcloud": "https://soundcloud.com/jersey-club-radio"
+      }
+    },
+    {
+      "rank": 19,
+      "title": "Placeholder Track 18",
+      "artist": "Placeholder Artist 18",
+      "producer": "Placeholder Producer D",
+      "bpm": 138,
+      "key": "8A",
+      "releaseDate": "2026-09-15",
+      "lastWeekRank": 18,
+      "weeksOnChart": 2,
+      "signal": {
+        "type": "tiktok",
+        "note": "Placeholder: TikTok sound usage up this week"
+      },
+      "links": {
+        "soundcloud": "https://soundcloud.com/jersey-club-radio"
+      }
+    },
+    {
+      "rank": 20,
+      "title": "Placeholder Track 20",
+      "artist": "Placeholder Artist 20",
+      "producer": "Placeholder Producer A",
+      "originalSample": "Placeholder: flip of an original sample",
+      "bpm": 140,
+      "key": "10A",
+      "releaseDate": "2026-09-15",
+      "lastWeekRank": 20,
+      "weeksOnChart": 2,
+      "signal": {
+        "type": "new",
+        "note": "Placeholder: new release"
+      },
+      "links": {
+        "soundcloud": "https://soundcloud.com/jersey-club-radio"
+      }
+    }
+  ]
+}

@@ -10,9 +10,13 @@ import { formatArtistName } from '../utils/formatArtistName';
  *
  * Generates SEO on-the-fly from the DISPLAY-FORMATTED title and artist,
  * keeping it purely in the display layer — no dependency on source data mutations.
+ *
+ * `enabled = false` leaves the head alone: pages with their own SEO (Rising Now chart
+ * and producer pages, which are prerendered with their own tags) opt out.
  */
-export function useTrackSEO(currentTrack: Track | null) {
+export function useTrackSEO(currentTrack: Track | null, enabled = true) {
   useEffect(() => {
+    if (!enabled) return;
     if (!currentTrack) {
       document.title = 'Jersey Club Radio | 24/7 Jersey Club Music';
       updateMeta('description', '24/7 Jersey Club music streaming. Listen to the best Jersey Club tracks, mixes, and new releases.');
@@ -42,7 +46,7 @@ export function useTrackSEO(currentTrack: Track | null) {
     return () => {
       document.title = 'Jersey Club Radio | 24/7 Jersey Club Music';
     };
-  }, [currentTrack?.id?.videoId]);
+  }, [currentTrack?.id?.videoId, enabled]);
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
