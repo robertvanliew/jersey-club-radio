@@ -5,6 +5,7 @@ import { useCrateSafe } from '../context/CrateContext';
 import { TrackCard } from '../components/TrackCard';
 import { MostPlayed } from '../components/MostPlayed';
 import { RisingNowSection, ProducersToWatch } from '../components/RisingNow';
+import { GrowthSection } from '../components/GrowthSection';
 import { JerseyClubArticles } from '../components/JerseyClubArticles';
 import { Visualizer } from '../components/Visualizer';
 import { SocialWidgets } from '../components/SocialWidgets';
@@ -613,6 +614,9 @@ export function Home() {
 
       {/* Articles section */}
       <JerseyClubArticles />
+
+      {/* Reach stats, track submissions, weekly chart signup */}
+      <GrowthSection />
     </div>
   );
 }

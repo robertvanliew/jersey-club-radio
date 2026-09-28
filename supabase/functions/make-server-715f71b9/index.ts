@@ -2,6 +2,7 @@ import { Hono } from "npm:hono";
 import { cors } from "npm:hono/cors";
 import { logger } from "npm:hono/logger";
 import * as kv from "./kv_store.ts";
+import { validateSubmission, validateSubscribe, SUBMISSION_STATUSES } from "./growth_validate.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2.49.8";
 // Official Paddle Node SDK — used for typed webhook verification (unmarshal)
 import { Paddle, EventName } from "npm:@paddle/paddle-node-sdk";
@@ -4056,6 +4057,94 @@ app.put("/make-server-715f71b9/admin/playlist-order", async (c) => {
     console.log("[Admin] save order error:", e);
     return c.json({ error: String(e) }, 500);
   }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  GROWTH: track submissions + weekly-chart email signups (stored in KV)
+// ═══════════════════════════════════════════════════════════════════════════════
+const SUBMISSIONS_KEY = 'jc_submissions_v1';   // array, newest first
+const SUBSCRIBERS_KEY = 'jc_subscribers_v1';   // { [email]: { createdAt, source } }
+
+/** Per-IP daily limit (IP is hashed, never stored raw). Returns false when over the limit. */
+async function underDailyLimit(c: any, kind: string, max: number): Promise<boolean> {
+  const day = new Date().toISOString().slice(0, 10);
+  const key = `jc_rl_${kind}_${hashIP(extractIP(c))}_${day}`;
+  const n = ((await kv.get(key)) as number) || 0;
+  if (n >= max) return false;
+  await kv.set(key, n + 1);
+  return true;
+}
+
+// POST /submissions — producers submit a SoundCloud track for consideration
+app.post("/make-server-715f71b9/submissions", async (c) => {
+  try {
+    const v = validateSubmission(await c.req.json().catch(() => null));
+    if (!v.ok) return v.spam ? c.json({ ok: true }) : c.json({ error: v.error }, 400);
+    if (!(await underDailyLimit(c, 'sub', 5))) return c.json({ error: 'Too many submissions today. Please try again tomorrow.' }, 429);
+    const list = ((await kv.get(SUBMISSIONS_KEY)) as any[]) || [];
+    if (list.some(s => s.soundcloudUrl === v.value.soundcloudUrl && s.status !== 'rejected')) {
+      return c.json({ error: 'That track has already been submitted.' }, 409);
+    }
+    const id = crypto.randomUUID();
+    list.unshift({ id, ...v.value, status: 'new', fastTrack: false, createdAt: new Date().toISOString() });
+    await kv.set(SUBMISSIONS_KEY, list.slice(0, 2000));
+    console.log(`[Submissions] new: ${v.value.soundcloudUrl}`);
+    return c.json({ ok: true, id });
+  } catch (e) {
+    console.log('[Submissions] error:', e);
+    return c.json({ error: 'Something went wrong. Please try again.' }, 500);
+  }
+});
+
+// POST /subscribe — weekly Rising Now email signup
+app.post("/make-server-715f71b9/subscribe", async (c) => {
+  try {
+    const v = validateSubscribe(await c.req.json().catch(() => null));
+    if (!v.ok) return v.spam ? c.json({ ok: true }) : c.json({ error: v.error }, 400);
+    if (!(await underDailyLimit(c, 'subscribe', 10))) return c.json({ error: 'Too many attempts today.' }, 429);
+    const subs = ((await kv.get(SUBSCRIBERS_KEY)) as Record<string, any>) || {};
+    if (!subs[v.value.email]) {
+      subs[v.value.email] = { createdAt: new Date().toISOString(), source: 'homepage' };
+      await kv.set(SUBSCRIBERS_KEY, subs);
+    }
+    return c.json({ ok: true });
+  } catch (e) {
+    console.log('[Subscribe] error:', e);
+    return c.json({ error: 'Something went wrong. Please try again.' }, 500);
+  }
+});
+
+// GET /admin/submissions — review list (+ subscriber count)
+app.get("/make-server-715f71b9/admin/submissions", async (c) => {
+  const auth = await requireAdmin(c);
+  if (auth instanceof Response) return auth;
+  const list = ((await kv.get(SUBMISSIONS_KEY)) as any[]) || [];
+  const subs = ((await kv.get(SUBSCRIBERS_KEY)) as Record<string, any>) || {};
+  return c.json({ submissions: list, subscriberCount: Object.keys(subs).length });
+});
+
+// PUT /admin/submissions/:id — set status / mark fast-track paid
+app.put("/make-server-715f71b9/admin/submissions/:id", async (c) => {
+  const auth = await requireAdmin(c);
+  if (auth instanceof Response) return auth;
+  const { status, fastTrack } = await c.req.json().catch(() => ({}));
+  if (status !== undefined && !SUBMISSION_STATUSES.includes(status)) return c.json({ error: 'Bad status' }, 400);
+  const list = ((await kv.get(SUBMISSIONS_KEY)) as any[]) || [];
+  const s = list.find(x => x.id === c.req.param('id'));
+  if (!s) return c.json({ error: 'Not found' }, 404);
+  if (status !== undefined) s.status = status;
+  if (typeof fastTrack === 'boolean') s.fastTrack = fastTrack;
+  await kv.set(SUBMISSIONS_KEY, list);
+  return c.json({ ok: true, submission: s });
+});
+
+// GET /admin/subscribers.csv — export the email list
+app.get("/make-server-715f71b9/admin/subscribers.csv", async (c) => {
+  const auth = await requireAdmin(c);
+  if (auth instanceof Response) return auth;
+  const subs = ((await kv.get(SUBSCRIBERS_KEY)) as Record<string, any>) || {};
+  const rows = Object.entries(subs).map(([email, s]) => `${email},${s.createdAt},${s.source}`);
+  return c.body(['email,signed_up,source', ...rows].join('\n'), 200, { 'Content-Type': 'text/csv' });
 });
 
 // GET /admin/all-tracks — returns all cached tracks for admin reordering

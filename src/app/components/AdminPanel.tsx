@@ -12,6 +12,7 @@ import { formatTrackTitle } from '../utils/formatTrackTitle';
 import type { TopSongPick } from './MostPlayed';
 import { WorldHeatMap, type MapDot } from './WorldHeatMap';
 import { AdminArtistsPanel } from './AdminArtistsPanel';
+import { AdminInbox } from './AdminInbox';
 
 const BASE = `https://${projectId}.supabase.co/functions/v1/make-server-715f71b9`;
 const supabase = createClient(`https://${projectId}.supabase.co`, publicAnonKey);
@@ -690,7 +691,11 @@ function AnalyticsPanel() {
 
 // ─── Admin Dashboard ──────────────────────────────────────────────────────────
 function AdminDashboard({ adminToken, onLogout }: { adminToken: string; onLogout: () => void }) {
-  const [activeTab, setActiveTab] = useState<'songs' | 'analytics' | 'artists'>('songs');
+  const [activeTab, setActiveTab] = useState<'songs' | 'analytics' | 'artists' | 'inbox'>('songs');
+  const getToken = useCallback(async () => {
+    const { data } = await supabase.auth.getSession();
+    return data.session?.access_token ?? adminToken ?? null;
+  }, [adminToken]);
   const [playlist, setPlaylist] = useState<AdminTrack[]>([]);
   const [picks, setPicks] = useState<TopSongPick[]>([]);
   const [search, setSearch] = useState('');
@@ -905,6 +910,17 @@ function AdminDashboard({ adminToken, onLogout }: { adminToken: string; onLogout
             >
               Artists
             </button>
+            <button
+              onClick={() => setActiveTab('inbox')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black tracking-widest uppercase transition-all"
+              style={{
+                background: activeTab === 'inbox' ? 'rgba(255,0,128,0.12)' : 'transparent',
+                color: activeTab === 'inbox' ? '#FF4DA6' : '#5B4F70',
+                boxShadow: activeTab === 'inbox' ? '0 0 10px rgba(255,0,128,0.15)' : 'none',
+              }}
+            >
+              Inbox
+            </button>
           </div>
 
           {/* Save status (songs tab only) */}
@@ -955,6 +971,9 @@ function AdminDashboard({ adminToken, onLogout }: { adminToken: string; onLogout
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── Inbox tab: track submissions + chart subscribers ───────────────── */}
+      {activeTab === 'inbox' && <AdminInbox getToken={getToken} />}
 
       {/* ── Artists tab ──────────────────────────────────────────────────── */}
       <AnimatePresence mode="wait">
