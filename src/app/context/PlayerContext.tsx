@@ -7,6 +7,11 @@ import { decodeHtmlEntities } from '../utils/decodeHtmlEntities';
 import { getMaxResThumbnail } from '../utils/getMaxResThumbnail';
 
 import { sanitizeTrack } from '../utils/sanitizeTrack';
+import {
+  LEAD_IN, OVERLAP, TOTAL as CROSSFADE_TOTAL, UI_SWITCH_AT as UI_SWITCH_POINT, MIN_TRACK_FOR_XFADE,
+  BASS_SHELF_HZ, NEUTRAL_HP_HZ, outGainAt, inGainAt, outHighpassAt, lowshelfDbAt, sampleCurve,
+  isQuietTail, shouldStartEarly,
+} from '../lib/eqMix';
 
 declare global {
   interface Window {
@@ -101,21 +106,13 @@ export function usePlayerProgress() {
 const BASE = `https://${projectId}.supabase.co/functions/v1/make-server-715f71b9`;
 const HEADERS = { Authorization: `Bearer ${publicAnonKey}` };
 
-// ─── DJ Crossfade constants ──────────────────────────────────────────────────
-// Two-phase crossfade: Phase 1 = solo fade-out, Phase 2 = overlap blend
-const CROSSFADE_TOTAL = 15;        // total seconds for the entire transition
-const LEAD_IN = 5;         // seconds of solo fade-out before incoming starts
-const OVERLAP = CROSSFADE_TOTAL - LEAD_IN; // seconds of both decks playing
-const UI_SWITCH_POINT = 10;         // seconds into crossfade when "now playing" switches
-const CROSSFADE_TICK = 30;        // ms between volume updates (approx 33 fps for buttery smooth)
-const MIN_TRACK_FOR_XFADE = 30;       // don't crossfade tracks shorter than this
+// ─── DJ Crossfade ────────────────────────────────────────────────────────────
+// Two-phase crossfade (solo fade-out, then overlap blend). Timing and curves live in
+// ../lib/eqMix. Native decks get the EQ Mix (Rise + bass swap) scheduled on the audio
+// clock; widget/YouTube decks are stepped by a timer every CROSSFADE_TICK ms.
+const CROSSFADE_TICK = 30;        // ms between timer steps
 
 const FETCH_MORE_THRESHOLD = 8;
-
-// Advanced DJ S-curve (Logarithmic / Exponential equal-power blend)
-// Gives that Grammy-winning silky smooth blend by preserving perceived loudness better than linear.
-function equalPowerOut(t: number): number { return Math.pow(Math.cos(t * Math.PI * 0.5), 1.5); }
-function equalPowerIn(t: number): number { return Math.pow(Math.sin(t * Math.PI * 0.5), 1.5); }
 
 // ─── Utility: location + guest ID + play reporting (unchanged) ───────────────
 let cachedLocation: { city: string; country: string; lat: number | null; lon: number | null } | null = null;
@@ -241,6 +238,17 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const deckLoadSeqRef = useRef<Record<DeckId, number>>({ A: 0, B: 0 });
   const deckReadyRef = useRef<Record<DeckId, boolean>>({ A: false, B: false });
   const deckWantsPlayRef = useRef<Record<DeckId, boolean>>({ A: false, B: false });
+  // EQ Mix per-deck FX (native decks): highpass (Rise) → lowshelf (bass swap) → analyser (level)
+  const deckFxRef = useRef<Partial<Record<DeckId, { hp: BiquadFilterNode; ls: BiquadFilterNode; an: AnalyserNode }>>>({});
+  // Which decks' gain/FX are currently driven by audio-clock automation (not the timer)
+  const mixScheduledRef = useRef<Record<DeckId, boolean>>({ A: false, B: false });
+  // Level history of the live deck, for detecting a quiet ending (fade-out / silent tail)
+  const levelRef = useRef<{ forId: string; sum: number; count: number; recent: number[] }>({ forId: '', sum: 0, count: 0, recent: [] });
+  // Dev-only hook for the browser test (tests/e2e/eq-mix.mjs); stripped from production builds
+  if (import.meta.env.DEV) (window as any).__jcMix = {
+    fx: deckFxRef.current, scheduled: mixScheduledRef.current,
+    gain: (k: DeckId) => (k === 'A' ? deckGainA : deckGainB).current?.gain.value,
+  };
 
   // Which deck is currently the "live" deck the listener hears at full volume
   const activeDeckRef = useRef<DeckId>('A');
@@ -298,6 +306,17 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     return widget;
   };
 
+  /** Cancel any EQ Mix automation on a deck and return its filters to neutral */
+  const resetDeckFx = useCallback((deck: DeckId) => {
+    mixScheduledRef.current[deck] = false;
+    const fx = deckFxRef.current[deck];
+    if (!fx) return;
+    fx.hp.frequency.cancelScheduledValues(0);
+    fx.hp.frequency.value = NEUTRAL_HP_HZ;
+    fx.ls.gain.cancelScheduledValues(0);
+    fx.ls.gain.value = 0;
+  }, []);
+
   /** Set volume on a specific deck (routes to the correct engine + audio mode) */
   const setDeckVolume = useCallback((deck: DeckId, vol: number) => {
     const engine = getDeckEngine(deck).current;
@@ -308,7 +327,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       const mode = deck === 'A' ? deckModeA.current : deckModeB.current;
       if (mode === 'native') {
         const gain = deck === 'A' ? deckGainA.current : deckGainB.current;
-        if (gain) gain.gain.value = clampedVol / 100;
+        // An explicit volume overrides any scheduled EQ Mix gain curve
+        if (gain) { gain.gain.cancelScheduledValues(0); gain.gain.value = clampedVol / 100; }
       } else {
         try { getSafeSc(deck)?.setVolume(Math.round(clampedVol)); } catch { }
       }
@@ -343,10 +363,44 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       const audio = deck === 'A' ? scAudioA.current : scAudioB.current;
       const gain = deck === 'A' ? deckGainA.current : deckGainB.current;
       try { audio?.pause(); if (audio) audio.currentTime = 0; } catch { }
-      if (gain) gain.gain.value = 0;
+      if (gain) { gain.gain.cancelScheduledValues(0); gain.gain.value = 0; }
+      resetDeckFx(deck);
     } else {
       try { getSafeSc(deck)?.pause(); } catch { }
       try { getSafeSc(deck)?.setVolume(0); } catch { }
+    }
+  }, [resetDeckFx]);
+
+  /** Is this deck playing through native <audio> + Web Audio (so EQ Mix can drive it)? */
+  const isNativeDeck = (deck: DeckId) =>
+    getDeckEngine(deck).current === 'soundcloud' &&
+    (deck === 'A' ? deckModeA.current : deckModeB.current) === 'native' &&
+    !!(deck === 'A' ? deckGainA.current : deckGainB.current) && !!deckFxRef.current[deck];
+
+  /**
+   * Schedule the EQ Mix (gain curves, Rise, bass swap) on the audio clock from `from`
+   * seconds into the transition to the end. Only native decks are scheduled; returns
+   * which decks were, so the timer keeps stepping the others (widget fallback).
+   */
+  const scheduleEqMix = useCallback((outDeck: DeckId, inDeck: DeckId, from: number) => {
+    const ctx = audioCtxRef.current;
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const dur = Math.max(0.05, CROSSFADE_TOTAL - from);
+    const points = Math.max(2, Math.round(dur * 30));
+    const master = masterVolumeRef.current / 100;
+    const apply = (param: AudioParam, curve: Float32Array) => {
+      param.cancelScheduledValues(0);
+      param.setValueCurveAtTime(curve, now, dur);
+    };
+    for (const [deck, role] of [[outDeck, 'out'], [inDeck, 'in']] as const) {
+      if (!isNativeDeck(deck)) { mixScheduledRef.current[deck] = false; continue; }
+      const gain = (deck === 'A' ? deckGainA.current : deckGainB.current)!;
+      const fx = deckFxRef.current[deck]!;
+      apply(gain.gain, sampleCurve(role === 'out' ? outGainAt : inGainAt, from, points, master));
+      apply(fx.ls.gain, sampleCurve(t => lowshelfDbAt(role, t), from, points));
+      if (role === 'out') apply(fx.hp.frequency, sampleCurve(outHighpassAt, from, points));
+      mixScheduledRef.current[deck] = true;
     }
   }, []);
 
@@ -550,12 +604,13 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       const incoming = incomingDeckRef.current;
       // Hard-stop the incoming deck (stopVideo, not just pause)
       stopDeck(incoming);
-      // Restore active deck to master volume
+      // Restore active deck to master volume with neutral EQ
+      resetDeckFx(activeDeckRef.current);
       setDeckVolume(activeDeckRef.current, masterVolumeRef.current);
       isCrossfadingRef.current = false;
       console.log('[DJ] Crossfade cancelled — Deck', incoming, 'hard-stopped');
     }
-  }, [stopDeck, setDeckVolume]);
+  }, [stopDeck, setDeckVolume, resetDeckFx]);
 
   /** Finish crossfade — swap active deck, clean up outgoing */
   const finishCrossfade = useCallback(() => {
@@ -570,7 +625,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     // Hard-stop outgoing deck (stopVideo, not just pause — prevents audio leaks)
     stopDeck(outgoing);
 
-    // Ensure incoming is at full master volume
+    // Ensure incoming is at full master volume with neutral EQ (bass fully back in)
+    resetDeckFx(incoming);
     setDeckVolume(incoming, masterVolumeRef.current);
 
     // Swap the active deck
@@ -594,7 +650,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     if (tracksRemaining <= FETCH_MORE_THRESHOLD && !isFetchingMoreRef.current) {
       fetchMoreTracks();
     }
-  }, [stopDeck, setDeckVolume, fetchMoreTracks]);
+  }, [stopDeck, setDeckVolume, resetDeckFx, fetchMoreTracks]);
 
   /** Start a DJ crossfade into the next track */
   const startCrossfade = useCallback(() => {
@@ -623,43 +679,31 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     // Pre-load (CUE) the incoming track without playing — it'll start in Phase 2
     loadOnDeck(incoming, nextTrack, false, 0);
 
-    // Start the two-phase crossfade volume ramp
+    // EQ Mix: native decks get gain + Rise + bass swap on the audio clock
+    scheduleEqMix(active, incoming, 0);
+    if (mixScheduledRef.current[active]) {
+      console.log(`[DJ] EQ Mix scheduled (Rise + bass swap)${mixScheduledRef.current[incoming] ? '' : ' — incoming volume stepped by timer'}`);
+    }
+    // A deck is timer-driven unless EQ Mix scheduled it and it is still native
+    // (the incoming deck can fall back to the widget after its stream fails)
+    const timerDriven = (deck: DeckId) => !(mixScheduledRef.current[deck] && isNativeDeck(deck));
+
+    // Start the two-phase crossfade
     crossfadeStartRef.current = Date.now();
     crossfadeTimerRef.current = setInterval(() => {
       const elapsed = (Date.now() - crossfadeStartRef.current) / 1000;
 
-      let outVol: number;
-      let inVol: number;
-
-      if (elapsed < LEAD_IN) {
-        // ── Phase 1: Solo fade-out (outgoing gently drops, incoming silent) ──
-        const t1 = Math.min(elapsed / LEAD_IN, 1); // 0 → 1 over LEAD_IN seconds
-        const easeOut = 1 - Math.pow(t1, 2); // Accelerating curve for smooth start
-        outVol = masterVolumeRef.current * (0.8 + 0.2 * easeOut); // 100% → 80% with ease
-        inVol = 0;
-      } else {
-        // ── Phase 2: Overlap blend (both decks playing) ──────────────────────
-
-        // Start the incoming deck the first time we enter Phase 2
-        if (!incomingStartedRef.current) {
-          incomingStartedRef.current = true;
-          playDeck(incoming);
-          setDeckVolume(incoming, 0);
-          reportPlay(nextTrack);
-          console.log(`[DJ] Phase 2: Incoming Deck ${incoming} started playing`);
-        }
-
-        const overlapElapsed = elapsed - LEAD_IN;
-        const t2 = Math.min(overlapElapsed / OVERLAP, 1); // 0 → 1 over OVERLAP seconds
-
-        // Outgoing: continues from 80% down to 0 using DJ equalizer curve
-        outVol = masterVolumeRef.current * 0.8 * equalPowerOut(t2);
-        // Incoming: ramps from 0 up to 100% using DJ equalizer curve
-        inVol = masterVolumeRef.current * equalPowerIn(t2);
+      // Start the incoming deck the first time we enter Phase 2
+      if (elapsed >= LEAD_IN && !incomingStartedRef.current) {
+        incomingStartedRef.current = true;
+        playDeck(incoming);
+        if (timerDriven(incoming)) setDeckVolume(incoming, 0);
+        reportPlay(nextTrack);
+        console.log(`[DJ] Phase 2: Incoming Deck ${incoming} started playing`);
       }
 
-      setDeckVolume(active, outVol);
-      setDeckVolume(incoming, inVol);
+      if (timerDriven(active)) setDeckVolume(active, masterVolumeRef.current * outGainAt(elapsed));
+      if (timerDriven(incoming)) setDeckVolume(incoming, masterVolumeRef.current * inGainAt(elapsed));
 
       // ── Switch the "now playing" UI late into the blend ──────────────────
       if (!uiSwitchedRef.current && elapsed >= UI_SWITCH_POINT && pendingTrackRef.current) {
@@ -686,7 +730,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         finishCrossfade();
       }
     }, CROSSFADE_TICK);
-  }, [calcNextIndex, loadOnDeck, playDeck, setDeckVolume, finishCrossfade]);
+  }, [calcNextIndex, loadOnDeck, playDeck, setDeckVolume, scheduleEqMix, finishCrossfade]);
 
   // ─── Hard advance (no crossfade — fallback for short tracks / errors) ──
   const hardAdvance = useCallback(() => {
@@ -886,8 +930,23 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       const source = audioCtx.createMediaElementSource(audio);
       const gain = audioCtx.createGain();
       gain.gain.value = 0;
-      source.connect(gain);
+      // EQ Mix FX, neutral unless a transition is running:
+      // source → highpass (Rise) → lowshelf (bass swap) → analyser (level) → gain → compressor
+      const hp = audioCtx.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.value = NEUTRAL_HP_HZ;
+      const ls = audioCtx.createBiquadFilter();
+      ls.type = 'lowshelf';
+      ls.frequency.value = BASS_SHELF_HZ;
+      ls.gain.value = 0;
+      const an = audioCtx.createAnalyser();
+      an.fftSize = 2048;
+      source.connect(hp);
+      hp.connect(ls);
+      ls.connect(an);
+      an.connect(gain);
       gain.connect(compressor);
+      deckFxRef.current[deck] = { hp, ls, an };
 
       audio.addEventListener('play', () => {
         if (destroyed) return;
@@ -1107,6 +1166,31 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
             if (audio) {
               activeProg = audio.currentTime;
               activeDur = audio.duration || durationRef.current;
+
+              // ── Quiet ending: start the mix early on a fade-out / silent tail ──
+              const an = deckFxRef.current[active]?.an;
+              const trackId = currentTrackRef.current?.id.videoId ?? '';
+              if (an && !audio.paused && activeDur > 0) {
+                const lvl = levelRef.current.forId === trackId
+                  ? levelRef.current
+                  : (levelRef.current = { forId: trackId, sum: 0, count: 0, recent: [] });
+                const buf = new Float32Array(an.fftSize);
+                an.getFloatTimeDomainData(buf);
+                let s = 0;
+                for (let i = 0; i < buf.length; i++) s += buf[i] * buf[i];
+                const rms = Math.sqrt(s / buf.length);
+                const remaining = activeDur - activeProg;
+                // "Typical" level comes from the body of the song, not the ending being judged
+                if (remaining > 30) { lvl.sum += rms; lvl.count++; }
+                lvl.recent.push(rms);
+                if (lvl.recent.length > 10) lvl.recent.shift();
+                const typical = lvl.count ? lvl.sum / lvl.count : 0;
+                if (shouldStartEarly(activeProg, activeDur, isQuietTail(lvl.recent, typical))) {
+                  console.log(`[DJ] Quiet ending detected at ${activeProg.toFixed(1)}s / ${activeDur.toFixed(1)}s — mixing early`);
+                  startCrossfadeRef.current();
+                  return;
+                }
+              }
             }
           } else {
             // Widget — async callback
@@ -1340,24 +1424,20 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     setVolumeState(v);
 
     if (isCrossfadingRef.current) {
-      // Recalculate both deck volumes based on two-phase crossfade progress
       const elapsed = (Date.now() - crossfadeStartRef.current) / 1000;
-      if (elapsed < LEAD_IN) {
-        const t1 = Math.min(elapsed / LEAD_IN, 1);
-        const easeOut = 1 - Math.pow(t1, 2);
-        setDeckVolume(activeDeckRef.current, v * (0.8 + 0.2 * easeOut));
-        setDeckVolume(incomingDeckRef.current, 0);
-      } else {
-        const t2 = Math.min((elapsed - LEAD_IN) / OVERLAP, 1);
-        setDeckVolume(activeDeckRef.current, v * 0.8 * equalPowerOut(t2));
-        setDeckVolume(incomingDeckRef.current, v * equalPowerIn(t2));
-      }
+      const out = activeDeckRef.current;
+      const inc = incomingDeckRef.current;
+      // Scheduled (native) decks: re-schedule the rest of the EQ Mix at the new volume
+      if (mixScheduledRef.current[out] || mixScheduledRef.current[inc]) scheduleEqMix(out, inc, elapsed);
+      // Timer-driven decks pick up the new volume on the next tick; set it now too
+      if (!mixScheduledRef.current[out]) setDeckVolume(out, v * outGainAt(elapsed));
+      if (!mixScheduledRef.current[inc]) setDeckVolume(inc, v * inGainAt(elapsed));
     } else {
       setDeckVolume(activeDeckRef.current, v);
       // Also force-mute the inactive deck — prevents echo from leaked audio
       setDeckVolume(otherDeck(activeDeckRef.current), 0);
     }
-  }, [setDeckVolume]);
+  }, [setDeckVolume, scheduleEqMix]);
 
   /** Seek within current track */
   const seekTo = useCallback((t: number) => {
