@@ -20,7 +20,7 @@ Replace the fixed 15-second crossfade with transitions that sound like Apple Mus
 
 - Mixing for the 11 DRM-only tracks. They play through the SoundCloud widget, which can't be analyzed, time-stretched or filtered, so they always get the Fade style.
 - A per-listener on/off toggle. The mix belongs to the station, like a DJ set.
-- Key/harmonic mixing, user-editable transitions and YouTube tracks.
+- Pitch-shifting songs into a compatible key, user-editable transitions and YouTube tracks.
 
 ## Current state
 
@@ -45,6 +45,8 @@ interface MixAnalysis {
   energyIn: number;     // 0–1, mean energy of the 8 bars from cueIn
   energyOut: number;    // 0–1, mean energy of the 8 bars from cueOut
   energyDrop: number;   // 0–1, mean energy of the 8 bars after the first drop
+  camelot: string;      // musical key as a Camelot code, e.g. "8A" (A minor), "8B" (C major)
+  keyStrength: number;  // 0–1 confidence of the key estimate
   duration: number;     // seconds
   analyzedAt: string;   // ISO timestamp
 }
@@ -67,7 +69,9 @@ Style selection, in order:
 | `next.mix.energyDrop − out.mix.energyOut ≥ 0.25` | **Rise** |
 | Otherwise | **Blend** |
 
-Plan output: `{ style, outStartAt /* cueOut */, inStartAt /* cueIn */, bars: 8, rate /* bpmOut/bpmIn, 1 for Echo/Fade */, secPerBar }`.
+**Key compatibility** (as Apple and Spotify use): two keys are compatible on the Camelot wheel if they have the same code, the same number with the other letter, or numbers one apart with the same letter (12 wraps to 1). If either `keyStrength < 0.5`, the key counts as unknown and is treated as compatible. A Blend between incompatible keys is shortened from 8 bars to 4, which reduces how long the clashing notes overlap. Rise and Echo out are unaffected because they already keep the overlap short or filtered.
+
+Plan output: `{ style, outStartAt /* cueOut */, inStartAt /* cueIn */, bars /* 8, or 4 for a key-clash Blend */, rate /* bpmOut/bpmIn, 1 for Echo/Fade */, secPerBar }`.
 
 ### 3. Playback engine changes
 
@@ -113,7 +117,8 @@ While a transition is running, the Now Playing area shows "Mixing into {next tit
    - first drop = the 8-bar boundary with the largest positive energy jump in the first 60% of the track;
    - outro start = the last 8-bar boundary after which energy stays below 60% of the median.
    - `cueIn = max(beatOffset, drop − 8 bars)`; `cueOut = min(outro start, duration − 8 bars)`, snapped to downbeats.
-6. `PUT /admin/mix-analysis` with `{ adminKey, records }`.
+6. essentia.js `KeyExtractor` (EDMA profile, suited to electronic music) → key, scale and strength, converted to a Camelot code.
+7. `PUT /admin/mix-analysis` with `{ adminKey, records }`.
 
 **Server** (`supabase/functions/make-server-715f71b9/index.ts`):
 - `PUT /admin/mix-analysis`: checks `ADMIN_KEY` as the existing admin-key endpoints do; validates each record's fields and ranges; merges into `jc_mix_analysis_v1`.
@@ -128,8 +133,9 @@ While a transition is running, the Now Playing area shows "Mixing into {next tit
 ## Testing
 
 - **Unit tests (Vitest, dev dependency):**
-  - `planTransition`: style selection for each row of the table, half/double-time tempo matching, rate and start times.
-  - Analysis on synthetic audio: generated tracks with known BPM (130/140/150) and an intro → drop → outro energy shape. The detected BPM must be within 0.5 and the cue points within 1 bar.
+  - `planTransition`: style selection for each row of the table, half/double-time tempo matching, rate and start times, 4-bar Blend for clashing keys, and unknown keys treated as compatible.
+  - Camelot conversion and compatibility: every key/scale maps to the right code; wheel neighbours including the 12→1 wrap.
+  - Analysis on synthetic audio: generated tracks with known BPM (130/140/150) and an intro → drop → outro energy shape. The detected BPM must be within 0.5 and the cue points within 1 bar. A synthetic A-minor chord track must be detected as "8A".
 - **Browser test (Playwright, faked station, all backend writes blocked):**
   - A Blend between two stub-analyzed tracks has a phase error under 30 ms between the decks' beat grids during the audible part.
   - `playbackRate` returns to 1.0 after the transition.
