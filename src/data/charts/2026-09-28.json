@@ -1,371 +1,366 @@
 {
   "week": "2026-09-28",
-  "placeholder": true,
+  "source": "soundcloud-auto-draft",
   "entries": [
     {
       "rank": 1,
-      "title": "Placeholder Track 12",
-      "artist": "Placeholder Artist 12",
-      "producer": "Placeholder Producer C",
-      "originalSample": "Placeholder: flip of an original sample",
-      "bpm": 138,
-      "key": "8A",
-      "releaseDate": "2026-09-15",
-      "lastWeekRank": 12,
-      "weeksOnChart": 2,
+      "title": "Becky G shower “JerseyClub Remix”",
+      "artist": "REDTABEATS",
+      "producer": "KH4RYL",
+      "releaseDate": "2026-09-23",
+      "lastWeekRank": null,
+      "weeksOnChart": 1,
       "signal": {
-        "type": "tiktok",
-        "note": "Placeholder: TikTok sound usage up this week"
+        "type": "new",
+        "note": "Released Sep 23: 13.7k plays in 6 days",
+        "url": "https://soundcloud.com/redta-beats/becky-g-shower-jerseyclub"
       },
       "links": {
-        "soundcloud": "https://soundcloud.com/jersey-club-radio"
-      }
+        "soundcloud": "https://soundcloud.com/redta-beats/becky-g-shower-jerseyclub"
+      },
+      "artwork": "https://i1.sndcdn.com/artworks-dlMTsjj2YwN8eSzm-gHSHUA-t500x500.jpg"
     },
     {
       "rank": 2,
-      "title": "Placeholder Track 5",
-      "artist": "Placeholder Artist 5",
-      "producer": "Placeholder Producer A",
-      "bpm": 143,
-      "key": "11B",
-      "releaseDate": "2026-09-15",
-      "lastWeekRank": 5,
-      "weeksOnChart": 2,
+      "title": "@nissi @25hzz Wyw my sweetie #JerseyClub",
+      "artist": "nissi",
+      "producer": "nissi",
+      "releaseDate": "2026-08-29",
+      "lastWeekRank": null,
+      "weeksOnChart": 1,
       "signal": {
-        "type": "new",
-        "note": "Placeholder: new release"
+        "type": "listeners",
+        "note": "~10.5k plays a week since release · 839 likes · 3 reposts",
+        "url": "https://soundcloud.com/lilmumble2/nissi-25hzz-wyw-my-sweetie-jerseyclub-1"
       },
       "links": {
-        "soundcloud": "https://soundcloud.com/jersey-club-radio"
-      }
+        "soundcloud": "https://soundcloud.com/lilmumble2/nissi-25hzz-wyw-my-sweetie-jerseyclub-1"
+      },
+      "artwork": "https://i1.sndcdn.com/artworks-bhkECTG86rd9qsyb-zyevjw-t500x500.jpg"
     },
     {
       "rank": 3,
-      "title": "Placeholder Track 4",
-      "artist": "Placeholder Artist 4",
-      "producer": "Placeholder Producer E",
-      "originalSample": "Placeholder: flip of an original sample",
-      "bpm": 142,
-      "key": "7B",
-      "releaseDate": "2026-09-15",
-      "lastWeekRank": 4,
-      "weeksOnChart": 2,
+      "title": "Wyw My Sweetie #jerseyclub ( By nissi )",
+      "artist": "lynnmii",
+      "producer": "lynnmii",
+      "releaseDate": "2026-08-29",
+      "lastWeekRank": null,
+      "weeksOnChart": 1,
       "signal": {
         "type": "listeners",
-        "note": "Placeholder: listener count climbing week over week"
+        "note": "~9.4k plays a week since release · 577 likes · 3 reposts",
+        "url": "https://soundcloud.com/londan-hurst/wyw-my-sweetie-jerseyclub-by"
       },
       "links": {
-        "soundcloud": "https://soundcloud.com/jersey-club-radio"
-      }
+        "soundcloud": "https://soundcloud.com/londan-hurst/wyw-my-sweetie-jerseyclub-by"
+      },
+      "artwork": "https://i1.sndcdn.com/artworks-asyiiEfWGdXZ02Yw-yOLtJg-t500x500.jpg"
     },
     {
       "rank": 4,
-      "title": "Placeholder Track 19",
-      "artist": "Placeholder Artist 19",
-      "producer": "Placeholder Producer E",
-      "bpm": 139,
-      "key": "9A",
-      "releaseDate": "2026-09-15",
-      "lastWeekRank": 19,
-      "weeksOnChart": 2,
+      "title": "SAWADIKA (KIARA JERSEY CLUB REMIX)",
+      "artist": "KIARA",
+      "producer": "KIARA",
+      "releaseDate": "2026-09-14",
+      "lastWeekRank": null,
+      "weeksOnChart": 1,
       "signal": {
         "type": "listeners",
-        "note": "Placeholder: listener count climbing week over week"
+        "note": "~8.2k plays a week since release · 1.5k likes · 132 reposts",
+        "url": "https://soundcloud.com/ashleykiaramusic/sawadika-kiara-jersey-club"
       },
       "links": {
-        "soundcloud": "https://soundcloud.com/jersey-club-radio"
-      }
+        "soundcloud": "https://soundcloud.com/ashleykiaramusic/sawadika-kiara-jersey-club"
+      },
+      "artwork": "https://i1.sndcdn.com/artworks-K6ctplls9nyAvLCo-oEWoMw-t500x500.jpg"
     },
     {
       "rank": 5,
-      "title": "Placeholder Track 6",
-      "artist": "Placeholder Artist 6",
-      "producer": "Placeholder Producer B",
-      "bpm": 138,
-      "key": "8A",
-      "releaseDate": "2026-09-15",
-      "lastWeekRank": 6,
-      "weeksOnChart": 2,
+      "title": "chanh long thuong co 2x4 (hoodtrap, jersey club remix)",
+      "artist": "meomeoboi",
+      "producer": "meomeoboi",
+      "releaseDate": "2026-09-21",
+      "lastWeekRank": null,
+      "weeksOnChart": 1,
       "signal": {
-        "type": "tiktok",
-        "note": "Placeholder: TikTok sound usage up this week"
+        "type": "listeners",
+        "note": "~5.5k plays a week since release · 94 likes · 2 reposts",
+        "url": "https://soundcloud.com/hoai-anh-235870349/chanh-long-thuong-co-2x4"
       },
       "links": {
-        "soundcloud": "https://soundcloud.com/jersey-club-radio"
-      }
+        "soundcloud": "https://soundcloud.com/hoai-anh-235870349/chanh-long-thuong-co-2x4"
+      },
+      "artwork": "https://i1.sndcdn.com/artworks-p2CgZ8NpWuyKFyOd-G9AVpQ-t500x500.jpg"
     },
     {
       "rank": 6,
-      "title": "Placeholder Track 7",
-      "artist": "Placeholder Artist 7",
-      "producer": "Placeholder Producer C",
-      "bpm": 139,
-      "key": "9A",
-      "releaseDate": "2026-09-15",
-      "lastWeekRank": 7,
-      "weeksOnChart": 2,
+      "title": "LISA - SaWaDiKa (SAL DI Jersey Club Edit)",
+      "artist": "SAL DI",
+      "producer": "SAL DI",
+      "releaseDate": "2026-09-11",
+      "lastWeekRank": null,
+      "weeksOnChart": 1,
       "signal": {
         "type": "listeners",
-        "note": "Placeholder: listener count climbing week over week"
+        "note": "~5.2k plays a week since release · 980 likes · 452 reposts",
+        "url": "https://soundcloud.com/sal-di-88332101/lisa-sawadika-sal-di-jersey"
       },
       "links": {
-        "soundcloud": "https://soundcloud.com/jersey-club-radio"
-      }
+        "soundcloud": "https://soundcloud.com/sal-di-88332101/lisa-sawadika-sal-di-jersey"
+      },
+      "artwork": "https://i1.sndcdn.com/artworks-ztFBlwLaqdFYuZJ9-vCyzpQ-t500x500.jpg"
     },
     {
       "rank": 7,
-      "title": "Placeholder Track 21",
-      "artist": "Placeholder Artist 21",
-      "producer": "Placeholder Producer B",
-      "bpm": 141,
-      "key": "5A",
-      "releaseDate": "2026-09-15",
+      "title": "yeunam #jerseyclub",
+      "artist": "kat sus",
+      "producer": "kat sus",
+      "releaseDate": "2026-08-28",
       "lastWeekRank": null,
       "weeksOnChart": 1,
       "signal": {
-        "type": "tiktok",
-        "note": "Placeholder: TikTok sound usage up this week"
+        "type": "listeners",
+        "note": "~4.8k plays a week since release · 592 likes · 24 reposts",
+        "url": "https://soundcloud.com/b-o-l-907652059/yeunam-jerseyclub"
       },
       "links": {
-        "soundcloud": "https://soundcloud.com/jersey-club-radio"
-      }
+        "soundcloud": "https://soundcloud.com/b-o-l-907652059/yeunam-jerseyclub"
+      },
+      "artwork": "https://i1.sndcdn.com/artworks-mwQZfSkFKZDyyf1K-GcUOGQ-t500x500.jpg"
     },
     {
       "rank": 8,
-      "title": "Placeholder Track 8",
-      "artist": "Placeholder Artist 8",
-      "producer": "Placeholder Producer D",
-      "originalSample": "Placeholder: flip of an original sample",
-      "bpm": 140,
-      "key": "10A",
-      "releaseDate": "2026-09-15",
-      "lastWeekRank": 8,
-      "weeksOnChart": 2,
+      "title": "Carry Out. @steezo @maaj #jerseyclub",
+      "artist": "@STEEZTHEPRODUCER",
+      "producer": "STEEZTHEPRODUCER",
+      "releaseDate": "2026-09-18",
+      "lastWeekRank": null,
+      "weeksOnChart": 1,
       "signal": {
-        "type": "new",
-        "note": "Placeholder: new release"
+        "type": "listeners",
+        "note": "~4.6k plays a week since release · 407 likes · 23 reposts",
+        "url": "https://soundcloud.com/steeztheproducer/carry-out-steezo-maaj"
       },
       "links": {
-        "soundcloud": "https://soundcloud.com/jersey-club-radio"
-      }
+        "soundcloud": "https://soundcloud.com/steeztheproducer/carry-out-steezo-maaj"
+      },
+      "artwork": "https://i1.sndcdn.com/artworks-wTzDd5s4mpHmbq4Y-F7gmzw-t500x500.jpg"
     },
     {
       "rank": 9,
-      "title": "Placeholder Track 9",
-      "artist": "Placeholder Artist 9",
-      "producer": "Placeholder Producer E",
-      "bpm": 141,
-      "key": "5A",
-      "releaseDate": "2026-09-15",
-      "lastWeekRank": 9,
-      "weeksOnChart": 2,
+      "title": "@hydroboiyo x @tamecheetahbeats - frickn ez #jerseyclub #ag #mk #pg #shimin #fg",
+      "artist": "HydroBoi (#081), Tamecheetahbeats",
+      "producer": "HydroBoi (#081)",
+      "releaseDate": "2026-09-18",
+      "lastWeekRank": null,
+      "weeksOnChart": 1,
       "signal": {
-        "type": "tiktok",
-        "note": "Placeholder: TikTok sound usage up this week"
+        "type": "listeners",
+        "note": "~4.6k plays a week since release · 317 likes · 34 reposts",
+        "url": "https://soundcloud.com/hydroboiyo/hydroboiyo-x-1"
       },
       "links": {
-        "soundcloud": "https://soundcloud.com/jersey-club-radio"
-      }
+        "soundcloud": "https://soundcloud.com/hydroboiyo/hydroboiyo-x-1"
+      },
+      "artwork": "https://i1.sndcdn.com/artworks-H2azSTBB44zIjfL4-ap1k1Q-t500x500.jpg"
     },
     {
       "rank": 10,
-      "title": "Placeholder Track 10",
-      "artist": "Placeholder Artist 10",
-      "producer": "Placeholder Producer A",
-      "bpm": 142,
-      "key": "7B",
-      "releaseDate": "2026-09-15",
-      "lastWeekRank": 10,
-      "weeksOnChart": 2,
+      "title": "nasty - (Jersey Club Mix) @prodbyA3J",
+      "artist": "prodbya3j",
+      "producer": "A3J",
+      "releaseDate": "2026-09-16",
+      "lastWeekRank": null,
+      "weeksOnChart": 1,
       "signal": {
         "type": "listeners",
-        "note": "Placeholder: listener count climbing week over week"
+        "note": "~4.4k plays a week since release · 481 likes · 3 reposts",
+        "url": "https://soundcloud.com/ajani-j/nasty-prodbya3j-jersey-club"
       },
       "links": {
-        "soundcloud": "https://soundcloud.com/jersey-club-radio"
-      }
+        "soundcloud": "https://soundcloud.com/ajani-j/nasty-prodbya3j-jersey-club"
+      },
+      "artwork": "https://i1.sndcdn.com/artworks-EAGbHkuNfeXp80oJ-KbAvzQ-t500x500.jpg"
     },
     {
       "rank": 11,
-      "title": "Placeholder Track 22",
-      "artist": "Placeholder Artist 22",
-      "producer": "Placeholder Producer C",
-      "bpm": 142,
-      "key": "7B",
-      "releaseDate": "2026-09-15",
+      "title": "SaWaDiKa (Foxela Remix) [JERSEY CLUB + TRAP]",
+      "artist": "Foxela, LISA",
+      "producer": "Foxela",
+      "releaseDate": "2026-09-21",
       "lastWeekRank": null,
       "weeksOnChart": 1,
       "signal": {
         "type": "listeners",
-        "note": "Placeholder: listener count climbing week over week"
+        "note": "~3.6k plays a week since release · 564 likes · 252 reposts",
+        "url": "https://soundcloud.com/foxela/sawadika"
       },
       "links": {
-        "soundcloud": "https://soundcloud.com/jersey-club-radio"
-      }
+        "soundcloud": "https://soundcloud.com/foxela/sawadika"
+      },
+      "artwork": "https://i1.sndcdn.com/artworks-ISUn9UrFDryiOv79-U0uUNA-t500x500.jpg"
     },
     {
       "rank": 12,
-      "title": "Placeholder Track 11",
-      "artist": "Placeholder Artist 11",
-      "producer": "Placeholder Producer B",
-      "bpm": 143,
-      "key": "11B",
-      "releaseDate": "2026-09-15",
-      "lastWeekRank": 11,
-      "weeksOnChart": 2,
+      "title": "BAD #JerseyClub @HumbleDallasBeats",
+      "artist": "Humble Dallas",
+      "producer": "Humble Dallas",
+      "releaseDate": "2026-09-21",
+      "lastWeekRank": null,
+      "weeksOnChart": 1,
       "signal": {
-        "type": "new",
-        "note": "Placeholder: new release"
+        "type": "listeners",
+        "note": "~3.4k plays a week since release · 117 likes · 5 reposts",
+        "url": "https://soundcloud.com/humbledallasbeats/bad-jerseyclub"
       },
       "links": {
-        "soundcloud": "https://soundcloud.com/jersey-club-radio"
-      }
+        "soundcloud": "https://soundcloud.com/humbledallasbeats/bad-jerseyclub"
+      },
+      "artwork": "https://i1.sndcdn.com/artworks-PWnEGtRr4VK92d0y-qZNHHQ-t500x500.jpg"
     },
     {
       "rank": 13,
-      "title": "Placeholder Track 13",
-      "artist": "Placeholder Artist 13",
-      "producer": "Placeholder Producer D",
-      "bpm": 139,
-      "key": "9A",
-      "releaseDate": "2026-09-15",
-      "lastWeekRank": 13,
-      "weeksOnChart": 2,
+      "title": "9 to 5 ( Jerseyclub Remix) - Djjaycee - Rest In Peace Dolly Parton",
+      "artist": "DJJaycee",
+      "producer": "DJJaycee",
+      "releaseDate": "2026-09-03",
+      "lastWeekRank": null,
+      "weeksOnChart": 1,
       "signal": {
         "type": "listeners",
-        "note": "Placeholder: listener count climbing week over week"
+        "note": "~3.3k plays a week since release · 748 likes · 9 reposts",
+        "url": "https://soundcloud.com/dj-jaycee-music/9-to-5-jerseyclub-remix-1"
       },
       "links": {
-        "soundcloud": "https://soundcloud.com/jersey-club-radio"
-      }
+        "soundcloud": "https://soundcloud.com/dj-jaycee-music/9-to-5-jerseyclub-remix-1"
+      },
+      "artwork": "https://i1.sndcdn.com/artworks-PPHCWhbHQoahSyFD-qpuTuQ-t500x500.jpg"
     },
     {
       "rank": 14,
-      "title": "Placeholder Track 14",
-      "artist": "Placeholder Artist 14",
-      "producer": "Placeholder Producer E",
-      "bpm": 140,
-      "key": "10A",
-      "releaseDate": "2026-09-15",
-      "lastWeekRank": 14,
-      "weeksOnChart": 2,
+      "title": "Lady Gaga - Just Dance (Jersey Club Remix) DJ B-Generation [Feat. Cox]",
+      "artist": "DJ B-Generation, Lady Gaga, Cox",
+      "producer": "DJ B-Generation",
+      "releaseDate": "2026-09-12",
+      "lastWeekRank": null,
+      "weeksOnChart": 1,
       "signal": {
-        "type": "new",
-        "note": "Placeholder: new release"
+        "type": "listeners",
+        "note": "~3.2k plays a week since release · 191 likes · 12 reposts",
+        "url": "https://soundcloud.com/djbgeneration1/lady-gaga-just-dance-jersey-1"
       },
       "links": {
-        "soundcloud": "https://soundcloud.com/jersey-club-radio"
-      }
+        "soundcloud": "https://soundcloud.com/djbgeneration1/lady-gaga-just-dance-jersey-1"
+      },
+      "artwork": "https://i1.sndcdn.com/artworks-fd8PA6InlLghh5I8-wffj6A-t500x500.jpg"
     },
     {
       "rank": 15,
-      "title": "Placeholder Track 15",
-      "artist": "Placeholder Artist 15",
-      "producer": "Placeholder Producer A",
-      "bpm": 141,
-      "key": "5A",
-      "releaseDate": "2026-09-15",
-      "lastWeekRank": 15,
-      "weeksOnChart": 2,
+      "title": "Kee Nola - Party Girl (Jersey Club)  Knight x @Shaunykts",
+      "artist": "KnightTheProducer!",
+      "producer": "KnightTheProducer!",
+      "releaseDate": "2026-09-14",
+      "lastWeekRank": null,
+      "weeksOnChart": 1,
       "signal": {
-        "type": "tiktok",
-        "note": "Placeholder: TikTok sound usage up this week"
+        "type": "listeners",
+        "note": "~3.1k plays a week since release · 219 likes · 4 reposts",
+        "url": "https://soundcloud.com/thatogkdp/kee-nola-party-girl-jersey"
       },
       "links": {
-        "soundcloud": "https://soundcloud.com/jersey-club-radio"
-      }
+        "soundcloud": "https://soundcloud.com/thatogkdp/kee-nola-party-girl-jersey"
+      },
+      "artwork": "https://i1.sndcdn.com/artworks-H5FYZQeeMrKKmhbi-ah8doQ-t500x500.jpg"
     },
     {
       "rank": 16,
-      "title": "Placeholder Track 16",
-      "artist": "Placeholder Artist 16",
-      "producer": "Placeholder Producer B",
-      "originalSample": "Placeholder: flip of an original sample",
-      "bpm": 142,
-      "key": "7B",
-      "releaseDate": "2026-09-15",
-      "lastWeekRank": 16,
-      "weeksOnChart": 2,
+      "title": "Love For You #jerseyclub",
+      "artist": "prodbykowin, prodbysaint",
+      "producer": "kowin",
+      "releaseDate": "2026-09-13",
+      "lastWeekRank": null,
+      "weeksOnChart": 1,
       "signal": {
         "type": "listeners",
-        "note": "Placeholder: listener count climbing week over week"
+        "note": "~2.9k plays a week since release · 209 likes · 2 reposts",
+        "url": "https://soundcloud.com/kow-n/love-for-you-jerseyclub-kowin"
       },
       "links": {
-        "soundcloud": "https://soundcloud.com/jersey-club-radio"
-      }
+        "soundcloud": "https://soundcloud.com/kow-n/love-for-you-jerseyclub-kowin"
+      },
+      "artwork": "https://i1.sndcdn.com/artworks-TA9wqyiEFYppuziJ-zryRlg-t500x500.jpg"
     },
     {
       "rank": 17,
-      "title": "Placeholder Track 23",
-      "artist": "Placeholder Artist 23",
-      "producer": "Placeholder Producer D",
-      "bpm": 143,
-      "key": "11B",
-      "releaseDate": "2026-09-15",
+      "title": "SO WHAT (Jersey Club Remix)",
+      "artist": "BopBeatz",
+      "producer": "bopbeatz",
+      "releaseDate": "2026-08-29",
+      "lastWeekRank": null,
+      "weeksOnChart": 1,
+      "signal": {
+        "type": "listeners",
+        "note": "~2.7k plays a week since release · 742 likes · 15 reposts",
+        "url": "https://soundcloud.com/bopbeatz/sowhatjerseyclubremix"
+      },
+      "links": {
+        "soundcloud": "https://soundcloud.com/bopbeatz/sowhatjerseyclubremix"
+      },
+      "artwork": "https://i1.sndcdn.com/artworks-VKOzwjiKfwbmJ1WV-hW8rgw-t500x500.jpg"
+    },
+    {
+      "rank": 18,
+      "title": "DARLING - LOOG X SAMU #JerseyClub",
+      "artist": "Loog",
+      "producer": "Loog",
+      "releaseDate": "2026-08-28",
+      "lastWeekRank": null,
+      "weeksOnChart": 1,
+      "signal": {
+        "type": "listeners",
+        "note": "~2.5k plays a week since release · 505 likes · 19 reposts",
+        "url": "https://soundcloud.com/countygoatloog/darling-loog-x-samu-jerseyclub"
+      },
+      "links": {
+        "soundcloud": "https://soundcloud.com/countygoatloog/darling-loog-x-samu-jerseyclub"
+      },
+      "artwork": "https://i1.sndcdn.com/artworks-CrMC8mygVIOFIClM-jZoing-t500x500.jpg"
+    },
+    {
+      "rank": 19,
+      "title": "Shower by Becky g (jersey club remix) megalab",
+      "artist": "Prod.Kh4ryl, Shaunykts, Prodbykingyt6, Armin, Redtabeats, Xtranyc, Dazienn",
+      "producer": "Kh4ryl",
+      "releaseDate": "2026-09-23",
       "lastWeekRank": null,
       "weeksOnChart": 1,
       "signal": {
         "type": "new",
-        "note": "Placeholder: new release"
+        "note": "Released Sep 23: 2.4k plays in 6 days",
+        "url": "https://soundcloud.com/user-317444724-680439610/shower-by-becky-g-jersey-club"
       },
       "links": {
-        "soundcloud": "https://soundcloud.com/jersey-club-radio"
-      }
-    },
-    {
-      "rank": 18,
-      "title": "Placeholder Track 17",
-      "artist": "Placeholder Artist 17",
-      "producer": "Placeholder Producer C",
-      "bpm": 143,
-      "key": "11B",
-      "releaseDate": "2026-09-15",
-      "lastWeekRank": 17,
-      "weeksOnChart": 2,
-      "signal": {
-        "type": "new",
-        "note": "Placeholder: new release"
+        "soundcloud": "https://soundcloud.com/user-317444724-680439610/shower-by-becky-g-jersey-club"
       },
-      "links": {
-        "soundcloud": "https://soundcloud.com/jersey-club-radio"
-      }
-    },
-    {
-      "rank": 19,
-      "title": "Placeholder Track 18",
-      "artist": "Placeholder Artist 18",
-      "producer": "Placeholder Producer D",
-      "bpm": 138,
-      "key": "8A",
-      "releaseDate": "2026-09-15",
-      "lastWeekRank": 18,
-      "weeksOnChart": 2,
-      "signal": {
-        "type": "tiktok",
-        "note": "Placeholder: TikTok sound usage up this week"
-      },
-      "links": {
-        "soundcloud": "https://soundcloud.com/jersey-club-radio"
-      }
+      "artwork": "https://i1.sndcdn.com/artworks-dlMTsjj2YwN8eSzm-gHSHUA-t500x500.jpg"
     },
     {
       "rank": 20,
-      "title": "Placeholder Track 20",
-      "artist": "Placeholder Artist 20",
-      "producer": "Placeholder Producer A",
-      "originalSample": "Placeholder: flip of an original sample",
-      "bpm": 140,
-      "key": "10A",
-      "releaseDate": "2026-09-15",
-      "lastWeekRank": 20,
-      "weeksOnChart": 2,
+      "title": "JACK - J97 | NGƯỜI DƯNG | NTPHAT MIX - JERK DRILL X JERSEY CLUB",
+      "artist": "NTPHAT Remix",
+      "producer": "NTPHAT Remix",
+      "releaseDate": "2026-09-18",
+      "lastWeekRank": null,
+      "weeksOnChart": 1,
       "signal": {
-        "type": "new",
-        "note": "Placeholder: new release"
+        "type": "listeners",
+        "note": "~2.3k plays a week since release · 44 likes · 1 reposts",
+        "url": "https://soundcloud.com/nguyenthanhphat1404/jack-j97-ng-i-d-ng-ntphat-mix"
       },
       "links": {
-        "soundcloud": "https://soundcloud.com/jersey-club-radio"
-      }
+        "soundcloud": "https://soundcloud.com/nguyenthanhphat1404/jack-j97-ng-i-d-ng-ntphat-mix"
+      },
+      "artwork": "https://i1.sndcdn.com/artworks-EFdX3flD8abiOFNA-vOjifw-t500x500.jpg"
     }
   ]
 }

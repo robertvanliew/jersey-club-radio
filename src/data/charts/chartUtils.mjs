@@ -75,8 +75,9 @@ export function validateChart(c) {
   const ranks = (c.entries ?? []).map(e => e.rank).sort((a, b) => a - b);
   if (!ranks.length || ranks.some((r, i) => r !== i + 1)) errs.push('ranks must be 1..N with no gaps or duplicates');
   for (const e of c.entries ?? []) {
-    for (const f of ['title', 'artist', 'producer', 'key', 'releaseDate']) if (!e[f]) errs.push(`#${e.rank}: missing ${f}`);
-    if (!(e.bpm > 0)) errs.push(`#${e.rank}: bad bpm`);
+    for (const f of ['title', 'artist', 'producer', 'releaseDate']) if (!e[f]) errs.push(`#${e.rank}: missing ${f}`);
+    // bpm and key are optional (SoundCloud doesn't provide them); validate when present
+    if (e.bpm != null && !(e.bpm > 0)) errs.push(`#${e.rank}: bad bpm`);
     if (e.lastWeekRank != null && !(e.lastWeekRank >= 1)) errs.push(`#${e.rank}: bad lastWeekRank`);
     if (!(e.weeksOnChart >= 1)) errs.push(`#${e.rank}: weeksOnChart must be >= 1`);
     if (!['tiktok', 'listeners', 'new'].includes(e.signal?.type)) errs.push(`#${e.rank}: signal.type must be tiktok|listeners|new`);

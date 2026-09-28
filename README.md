@@ -11,6 +11,12 @@
 
 ## How to publish a new week (Rising Now chart)
 
+**Automatic draft (default):** every Monday at 9am New York time, the GitHub Action "Draft Rising Now chart" builds the week's chart from SoundCloud play growth (`scripts/draft-chart.mjs`) and opens a pull request. Open it on GitHub, fix anything in `src/data/charts/<week>.json` (drop non-Jersey-club picks and renumber `rank`, fix producer credits, add TikTok evidence as `"signal": { "type": "tiktok", "note": "…", "url": "…" }`), then **Merge**. Vercel redeploys and the chart is live. The action can also be run by hand from the repo's **Actions** tab. Run it locally with `node scripts/draft-chart.mjs --dry-run`.
+
+Growth is measured against the previous week's snapshot in `data/chart-snapshots/`, so merge each week's PR (or at least keep its snapshot file) to get true week-over-week numbers.
+
+**By hand:**
+
 1. Copy the latest file in `src/data/charts/` to a new file named after the week's **Monday**, e.g. `src/data/charts/2026-10-05.json`, and set `"week"` to that date.
 2. Fill in the 20 entries. Per track:
    - `rank`, `title`, `artist`, `producer` (the producer page URL is made from this name, so spell it the same way every week)
@@ -25,5 +31,5 @@
 
 A week dated in the future isn't published until its date **and** the next build. If you commit early, push again (or redeploy in Vercel) on Monday.
 
-The seed files `2026-09-21.json` and `2026-09-28.json` are placeholders: replace or delete them when you add real weeks.
+`bpm` and `key` are optional (SoundCloud doesn't provide them); rows without them just skip those chips.
   

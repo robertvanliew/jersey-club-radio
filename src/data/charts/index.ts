@@ -8,8 +8,8 @@ export interface ChartEntry {
   artist: string;
   producer: string;
   originalSample?: string;
-  bpm: number;
-  key: string;
+  bpm?: number;
+  key?: string;
   releaseDate: string;
   lastWeekRank: number | null;
   weeksOnChart: number;

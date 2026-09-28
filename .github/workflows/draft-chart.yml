@@ -1,0 +1,45 @@
+name: Draft Rising Now chart
+
+# Every Monday: draft this week's chart from SoundCloud growth and open it as a pull
+# request. Review it on GitHub (add TikTok notes, drop non-Jersey-club picks), then
+# merge. Merging deploys the site through Vercel and publishes the chart.
+on:
+  schedule:
+    - cron: '0 13 * * 1'   # Mondays 13:00 UTC (9am New York)
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  draft:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Draft chart from SoundCloud
+        id: draft
+        run: |
+          node scripts/draft-chart.mjs | tee draft.log
+          echo "week=$(date -u -d "$(date -u +%Y-%m-%d) -$(( ($(date -u +%u) + 6) % 7 )) days" +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+      - name: Open pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chart/${{ steps.draft.outputs.week }}
+          commit-message: "Rising Now draft: week of ${{ steps.draft.outputs.week }}"
+          title: "Rising Now: week of ${{ steps.draft.outputs.week }}"
+          body: |
+            Auto-drafted from SoundCloud plays growth. Before merging:
+            - Remove anything that isn't Jersey club (delete the entry and renumber `rank`).
+            - Add TikTok evidence where you have it: set `"signal": { "type": "tiktok", "note": "used in 12k TikToks this week", "url": "…" }`.
+            - Fix producer credits if needed (they come from "prod." in the title, otherwise the uploader).
+
+            Merging publishes the chart on the live site. File: `src/data/charts/${{ steps.draft.outputs.week }}.json`
+          add-paths: |
+            src/data/charts/*.json
+            data/chart-snapshots/*.json
+          delete-branch: true

@@ -49,7 +49,7 @@ const rowHtml = e => `
   <div class="jc-main">
     <strong>${esc(e.title)}</strong> — ${esc(e.artist)}<br>
     <small>prod. <a href="/producers/${producerSlug(e.producer)}">${esc(e.producer)}</a>${e.originalSample ? ` · ${esc(e.originalSample)}` : ''}
-    · ${esc(e.bpm)} BPM · ${esc(e.key)} · released ${esc(e.releaseDate)} · ${esc(e.weeksOnChart)} week${e.weeksOnChart === 1 ? '' : 's'} on chart${e.lastWeekRank ? ` · last week #${e.lastWeekRank}` : ''}</small><br>
+    ${e.bpm ? `· ${esc(e.bpm)} BPM ` : ''}${e.key ? `· ${esc(e.key)} ` : ''}· released ${esc(e.releaseDate)} · ${esc(e.weeksOnChart)} week${e.weeksOnChart === 1 ? '' : 's'} on chart${e.lastWeekRank ? ` · last week #${e.lastWeekRank}` : ''}</small><br>
     <small>Why it's rising: ${e.signal.url ? `<a href="${esc(e.signal.url)}" rel="nofollow noopener">${esc(e.signal.note)}</a>` : esc(e.signal.note)}</small>
     ${LINKS.filter(([k]) => e.links?.[k]).map(([k, n]) => `<a href="${esc(e.links[k])}" rel="noopener">${n}</a>`).join(' ')}
   </div>

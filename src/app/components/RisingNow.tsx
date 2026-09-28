@@ -60,10 +60,12 @@ export function RisingNowRow({ entry }: { entry: ChartEntry }) {
           <Link to={`/producers/${producerSlug(entry.producer)}`} className="text-[#C080FF] hover:text-white">{entry.producer}</Link>
           {entry.originalSample && <span> · {entry.originalSample}</span>}
         </p>
-        <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded text-[#E0AAFF]" style={{ background: 'rgba(157,0,255,0.12)' }}>{entry.bpm} BPM</span>
-          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded text-[#E0AAFF]" style={{ background: 'rgba(157,0,255,0.12)' }}>{entry.key}</span>
-        </div>
+        {(entry.bpm || entry.key) && (
+          <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+            {entry.bpm && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded text-[#E0AAFF]" style={{ background: 'rgba(157,0,255,0.12)' }}>{entry.bpm} BPM</span>}
+            {entry.key && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded text-[#E0AAFF]" style={{ background: 'rgba(157,0,255,0.12)' }}>{entry.key}</span>}
+          </div>
+        )}
         <p className="flex items-start gap-1 text-[11px] text-[#9B8FB0] mt-1">
           <SignalIcon className="w-3 h-3 mt-0.5 shrink-0 text-[#FF0080]" />
           {entry.signal.url ? <a href={entry.signal.url} target="_blank" rel="noopener noreferrer" className="hover:text-white">{note}</a> : note}
