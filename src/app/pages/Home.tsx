@@ -602,11 +602,12 @@ export function Home() {
         </div>
 
         {/* Right column: Most Played (matches playlist height), then Producers to Watch beside Rising Now */}
-        <div className="lg:col-span-1 flex flex-col gap-6 min-w-0">
-          <div style={{ height: 'calc(100vh - 300px)' }}>
+        {/* Stretches to the left column's height so both columns end level */}
+        <div className="lg:col-span-1 flex flex-col gap-6 min-w-0 lg:self-stretch">
+          <div className="shrink-0" style={{ height: 'calc(100vh - 300px)' }}>
             <MostPlayed />
           </div>
-          <ProducersToWatch />
+          <ProducersToWatch className="lg:flex-1" />
         </div>
       </div>
 

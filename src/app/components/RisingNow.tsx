@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router';
-import { ArrowUp, ArrowDown, Minus, Flame, Music2, Headphones, Sparkles, ChevronRight } from 'lucide-react';
+import { ArrowUp, ArrowDown, Minus, Flame, Music2, Headphones, Sparkles, ChevronRight, Disc3 } from 'lucide-react';
 import { latestWeek, getChart, type ChartEntry } from '../../data/charts';
 import { movement, producerSlug, formatWeek, topProducers } from '../../data/charts/chartUtils.mjs';
 
@@ -54,21 +54,17 @@ export function RisingNowRow({ entry }: { entry: ChartEntry }) {
       )}
       <div className="min-w-0 flex-1">
         <p className="text-sm font-bold text-white leading-tight break-words">{entry.title}</p>
-        <p className="text-xs text-[#B9A6D6] leading-tight break-words">{entry.artist}</p>
-        <p className="text-[11px] text-[#7B6F90] mt-0.5 break-words">
-          prod.{' '}
+        <p className="text-xs text-[#B9A6D6] leading-snug break-words">
+          {entry.artist}
+          <span className="text-[#7B6F90]"> · prod. </span>
           <Link to={`/producers/${producerSlug(entry.producer)}`} className="text-[#C080FF] hover:text-white">{entry.producer}</Link>
-          {entry.originalSample && <span> · {entry.originalSample}</span>}
+          {entry.originalSample && <span className="text-[#7B6F90]"> · {entry.originalSample}</span>}
         </p>
-        {(entry.bpm || entry.key) && (
-          <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-            {entry.bpm && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded text-[#E0AAFF]" style={{ background: 'rgba(157,0,255,0.12)' }}>{entry.bpm} BPM</span>}
-            {entry.key && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded text-[#E0AAFF]" style={{ background: 'rgba(157,0,255,0.12)' }}>{entry.key}</span>}
-          </div>
-        )}
-        <p className="flex items-start gap-1 text-[11px] text-[#9B8FB0] mt-1">
-          <SignalIcon className="w-3 h-3 mt-0.5 shrink-0 text-[#FF0080]" />
-          {entry.signal.url ? <a href={entry.signal.url} target="_blank" rel="noopener noreferrer" className="hover:text-white">{note}</a> : note}
+        <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-[#9B8FB0] mt-1">
+          {entry.bpm && <span className="text-[10px] font-bold px-1.5 rounded text-[#E0AAFF]" style={{ background: 'rgba(157,0,255,0.12)' }}>{entry.bpm} BPM</span>}
+          {entry.key && <span className="text-[10px] font-bold px-1.5 rounded text-[#E0AAFF]" style={{ background: 'rgba(157,0,255,0.12)' }}>{entry.key}</span>}
+          <SignalIcon className="w-3 h-3 shrink-0 text-[#FF0080]" />
+          {entry.signal.url ? <a href={entry.signal.url} target="_blank" rel="noopener noreferrer" className="hover:text-white min-w-0">{note}</a> : <span className="min-w-0">{note}</span>}
         </p>
       </div>
       <div className="shrink-0 flex flex-col gap-1">
@@ -99,17 +95,18 @@ export function RisingNowList({ entries }: { entries: ChartEntry[] }) {
 }
 
 /** Homepage sidebar card: this week's top producers from the Rising Now chart */
-export function ProducersToWatch() {
+export function ProducersToWatch({ className = '' }: { className?: string }) {
   const chart = latestWeek ? getChart(latestWeek) : undefined;
   if (!chart) return null;
-  const producers = topProducers(chart, 5);
+  const producers = topProducers(chart, 10);
   return (
-    <section className="flex flex-col p-3 md:p-4" style={CARD_STYLE} aria-labelledby="producers-heading">
-      <h2 id="producers-heading" className="text-base font-bold text-white flex items-center gap-2">
-        <Sparkles className="w-4 h-4 text-[#FFD700]" /> Producers to Watch
+    <section className={`flex flex-col p-3 md:p-4 ${className}`} style={CARD_STYLE} aria-labelledby="producers-heading">
+      <h2 id="producers-heading" className="text-base md:text-lg font-bold text-white flex items-center gap-2">
+        <Disc3 className="w-4 h-4 text-[#FFD700]" /> Producers to Watch
       </h2>
       <p className="text-[11px] text-[#E0AAFF] font-semibold mb-3">From this week's Rising Now chart</p>
-      <ol className="flex flex-col gap-1.5 list-none p-0 m-0">
+      {/* Rows spread to fill the card when it's stretched to the chart's height */}
+      <ol className="flex flex-col justify-between gap-1 flex-1 list-none p-0 m-0">
         {producers.map((p, i) => (
           <li key={p.slug}>
             <Link
