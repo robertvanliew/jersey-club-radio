@@ -813,7 +813,20 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   // ═══════════════════════════════════════════════════════════════════════════
   //  YOUTUBE DUAL-PLAYER SETUP
   // ═══════════════════════════════════════════════════════════════════════════
+
+  // The embedded YouTube and SC widget players each hold background connections open,
+  // so with them loaded the page never goes network-idle. Neither is needed before the
+  // visitor interacts (native audio plays SoundCloud tracks), so load them on first input.
+  const [embedsWanted, setEmbedsWanted] = useState(false);
   useEffect(() => {
+    const events = ['pointerdown', 'keydown', 'touchstart'] as const;
+    const want = () => setEmbedsWanted(true);
+    for (const ev of events) window.addEventListener(ev, want, { once: true, passive: true });
+    return () => { for (const ev of events) window.removeEventListener(ev, want); };
+  }, []);
+
+  useEffect(() => {
+    if (!embedsWanted) return;
     let destroyed = false;
 
     // Create two hidden containers
@@ -930,7 +943,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       try { ytPlayerA.current?.destroy(); } catch { }
       try { ytPlayerB.current?.destroy(); } catch { }
     };
-  }, []); // no deps — created once, uses refs for callbacks
+  }, [embedsWanted]); // created once (on first interaction), uses refs for callbacks
 
   // ═══════════════════════════════════════════════════════════════════════════
   //  SOUNDCLOUD AUDIO SETUP: Web Audio API (primary) + SC Widget (fallback)
@@ -1014,8 +1027,20 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     makeAudioDeck('A');
     makeAudioDeck('B');
     console.log('[Player] Web Audio API normalizer ready');
+    // Native audio is the primary engine, so the player is usable now; the embedded
+    // YouTube / SC widget players load later, on first interaction (embedsWanted)
+    setPlayerReady(true);
 
-    // ── SC Widget fallback — used when stream URL resolution fails ────────
+    return () => {
+      destroyed = true;
+      audioCtx.close().catch(() => { });
+    };
+  }, []);
+
+  // ── SC Widget fallback (stream URL resolution failed) — loaded on first interaction ──
+  useEffect(() => {
+    if (!embedsWanted) return;
+    let destroyed = false;
     const iframeA = document.createElement('iframe');
     iframeA.id = 'jc-sc-widget-a';
     iframeA.src = 'https://w.soundcloud.com/player/?url=https://soundcloud.com/placeholder&auto_play=false';
@@ -1090,12 +1115,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       destroyed = true;
-      audioCtx.close().catch(() => { });
       try { iframeA.remove(); } catch { }
       try { iframeB.remove(); } catch { }
       try { script.remove(); } catch { }
     };
-  }, []);
+  }, [embedsWanted]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   //  UNIFIED PROGRESS TIMER + CROSSFADE TRIGGER
