@@ -236,6 +236,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   // Per-deck mode: 'native' uses Web Audio API; 'widget' falls back to SC Widget
   const deckModeA = useRef<'native' | 'widget'>('native');
   const deckModeB = useRef<'native' | 'widget'>('native');
+  // SC loads are async (stream URL fetch / widget load). Track per-deck load state so a
+  // play request made mid-load is honoured once the load lands, and stale loads are dropped.
+  const deckLoadSeqRef = useRef<Record<DeckId, number>>({ A: 0, B: 0 });
+  const deckReadyRef = useRef<Record<DeckId, boolean>>({ A: false, B: false });
+  const deckWantsPlayRef = useRef<Record<DeckId, boolean>>({ A: false, B: false });
 
   // Which deck is currently the "live" deck the listener hears at full volume
   const activeDeckRef = useRef<DeckId>('A');
@@ -312,6 +317,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
   /** Pause a specific deck entirely */
   const pauseDeck = useCallback((deck: DeckId) => {
+    deckWantsPlayRef.current[deck] = false;
     const engine = getDeckEngine(deck).current;
     if (engine === 'youtube') {
       try { getYtPlayer(deck)?.pauseVideo(); } catch { }
@@ -327,6 +333,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
   /** Hard-stop a deck — unlike pause, this fully unloads/stops audio to prevent leaks */
   const stopDeck = useCallback((deck: DeckId) => {
+    deckWantsPlayRef.current[deck] = false;
     // YouTube: stopVideo is more aggressive than pauseVideo — prevents auto-resume
     try { getYtPlayer(deck)?.stopVideo(); } catch { }
     try { getYtPlayer(deck)?.setVolume(0); } catch { }
@@ -340,6 +347,41 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     } else {
       try { getSafeSc(deck)?.pause(); } catch { }
       try { getSafeSc(deck)?.setVolume(0); } catch { }
+    }
+  }, []);
+
+  /** Start a deck via whichever engine + SC mode it is using. If its SC load is still
+   *  in flight, playback starts as soon as the load lands (see loadOnDeck). */
+  const playDeck = useCallback((deck: DeckId) => {
+    if (getDeckEngine(deck).current === 'youtube') {
+      try { getYtPlayer(deck)?.playVideo(); } catch { }
+      return;
+    }
+    deckWantsPlayRef.current[deck] = true;
+    if (!deckReadyRef.current[deck]) return;
+    const mode = deck === 'A' ? deckModeA.current : deckModeB.current;
+    if (mode === 'native') {
+      if (audioCtxRef.current?.state === 'suspended') audioCtxRef.current.resume();
+      (deck === 'A' ? scAudioA : scAudioB).current?.play().catch(e => console.warn('[SC Native] play error:', e));
+    } else {
+      try { getSafeSc(deck)?.play(); } catch { }
+    }
+  }, []);
+
+  /** Seek a deck to `sec` via whichever engine + SC mode it is using */
+  const seekDeck = useCallback((deck: DeckId, sec: number) => {
+    if (getDeckEngine(deck).current === 'youtube') {
+      try { getYtPlayer(deck)?.seekTo(sec, true); } catch { }
+      return;
+    }
+    const mode = deck === 'A' ? deckModeA.current : deckModeB.current;
+    if (mode === 'native') {
+      const audio = deck === 'A' ? scAudioA.current : scAudioB.current;
+      if (!audio) return;
+      if (deckReadyRef.current[deck] && audio.readyState >= 1) audio.currentTime = sec;
+      else audio.addEventListener('loadedmetadata', () => { audio.currentTime = sec; }, { once: true });
+    } else {
+      try { getSafeSc(deck)?.seekTo(sec * 1000); } catch { }
     }
   }, []);
 
@@ -381,6 +423,28 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       const audio = deck === 'A' ? scAudioA.current : scAudioB.current;
       const gain = deck === 'A' ? deckGainA.current : deckGainB.current;
 
+      const seq = ++deckLoadSeqRef.current[deck];
+      const isStale = () => seq !== deckLoadSeqRef.current[deck];
+      deckReadyRef.current[deck] = false;
+      deckWantsPlayRef.current[deck] = autoPlay;
+
+      const loadWidget = () => {
+        deckMode.current = 'widget';
+        const widget = getScWidget(deck);
+        if (!widget) return;
+        widget.load(track.soundcloudUrl, {
+          auto_play: autoPlay,
+          show_artwork: false,
+          callback: () => {
+            if (isStale()) return;
+            deckReadyRef.current[deck] = true;
+            try { widget.setVolume(Math.round(vol)); } catch { }
+            // Play was requested while loading (e.g. crossfade Phase 2 started early)
+            if (!autoPlay && deckWantsPlayRef.current[deck]) { try { widget.play(); } catch { } }
+          },
+        });
+      };
+
       // ── Primary: native <audio> + Web Audio API normalization ──────────
       if (audio && gain && audioCtxRef.current) {
         deckMode.current = 'native';
@@ -390,39 +454,27 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         fetch(`${BASE}/sc-stream?id=${numericId}`, { headers: HEADERS })
           .then(r => r.json())
           .then(data => {
+            if (isStale()) return;
             if (!data.url) throw new Error('No stream URL');
             audio.src = data.url;
-            if (autoPlay) {
+            deckReadyRef.current[deck] = true;
+            if (deckWantsPlayRef.current[deck]) {
               // Resume AudioContext — required after any user-gesture gap
               if (audioCtxRef.current?.state === 'suspended') audioCtxRef.current.resume();
               audio.play().catch(e => console.warn('[SC Native] play error:', e));
-              gain.gain.value = vol / 100;
+              if (autoPlay) gain.gain.value = vol / 100;
             }
           })
           .catch(err => {
+            if (isStale()) return;
             // ── Fallback: SC Widget (cross-origin iframe, no normalization) ──
+            // Needed for label-monetized tracks that SC only serves as DRM-encrypted HLS
             console.warn('[SC Native] stream URL failed, using Widget fallback:', err);
-            deckMode.current = 'widget';
-            const widget = getScWidget(deck);
-            if (widget) {
-              widget.load(track.soundcloudUrl, {
-                auto_play: autoPlay,
-                show_artwork: false,
-                callback: () => { try { widget.setVolume(Math.round(vol)); } catch { } },
-              });
-            }
+            loadWidget();
           });
       } else {
         // AudioContext not yet ready — go straight to SC Widget
-        deckMode.current = 'widget';
-        const widget = getScWidget(deck);
-        if (widget) {
-          widget.load(track.soundcloudUrl, {
-            auto_play: autoPlay,
-            show_artwork: false,
-            callback: () => { try { widget.setVolume(Math.round(vol)); } catch { } },
-          });
-        }
+        loadWidget();
       }
     } else {
       // Ensure SC on this deck is paused
@@ -591,12 +643,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         // Start the incoming deck the first time we enter Phase 2
         if (!incomingStartedRef.current) {
           incomingStartedRef.current = true;
-          const isSC = nextTrack.source === 'soundcloud';
-          if (isSC && nextTrack.soundcloudUrl) {
-            try { getSafeSc(incoming)?.play(); } catch { }
-          } else {
-            try { getYtPlayer(incoming)?.playVideo(); } catch { }
-          }
+          playDeck(incoming);
           setDeckVolume(incoming, 0);
           reportPlay(nextTrack);
           console.log(`[DJ] Phase 2: Incoming Deck ${incoming} started playing`);
@@ -639,7 +686,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         finishCrossfade();
       }
     }, CROSSFADE_TICK);
-  }, [calcNextIndex, loadOnDeck, setDeckVolume, finishCrossfade]);
+  }, [calcNextIndex, loadOnDeck, playDeck, setDeckVolume, finishCrossfade]);
 
   // ─── Hard advance (no crossfade — fallback for short tracks / errors) ──
   const hardAdvance = useCallback(() => {
@@ -1210,6 +1257,10 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       // Pause — if crossfading, cancel it too
       cancelCrossfade();
       pauseDeck(active);
+      // Don't rely on the deck's pause event: if the deck had already gone silent
+      // (e.g. a failed load) no event fires and the button would never flip back.
+      setIsPlaying(false);
+      isPlayingRef.current = false;
     } else {
       // Ensure the inactive deck is fully stopped before resuming
       // (prevents echo if it was left playing from a previous transition)
@@ -1260,13 +1311,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     // If more than 3 seconds in, restart the current track
     // Use progressRef so this callback is stable and doesn't rebuild every 400ms
     if (progressRef.current > 3) {
-      const active = activeDeckRef.current;
-      const engine = getDeckEngine(active).current;
-      if (engine === 'soundcloud') {
-        try { getSafeSc(active)?.seekTo(0); } catch { }
-      } else {
-        try { getYtPlayer(active)?.seekTo(0, true); } catch { }
-      }
+      seekDeck(activeDeckRef.current, 0);
       setProgress(0);
       return;
     }
@@ -1284,7 +1329,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       stopDeck(otherDeck(active));
       loadOnDeck(active, prev, true, masterVolumeRef.current);
     }
-  }, [cancelCrossfade, loadOnDeck, stopDeck]); // no `progress` dep — uses progressRef
+  }, [cancelCrossfade, loadOnDeck, seekDeck, stopDeck]); // no `progress` dep — uses progressRef
 
   const toggleShuffle = useCallback(() => setIsShuffle(s => !s), []);
   const toggleRepeat = useCallback(() => setIsRepeat(r => !r), []);
@@ -1371,17 +1416,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     // Seek to correct position after player has time to buffer
     if (seekSec > 2) {
       setTimeout(() => {
-        const activeDeck = activeDeckRef.current;
-        const eng = getDeckEngine(activeDeck).current;
-        if (eng === 'youtube') {
-          try { getYtPlayer(activeDeck)?.seekTo(seekSec, true); } catch { }
-        } else {
-          try { getSafeSc(activeDeck)?.seekTo(seekSec * 1000); } catch { }
-        }
+        seekDeck(activeDeckRef.current, seekSec);
         setProgress(seekSec);
       }, 2000);
     }
-  }, [cancelCrossfade, loadOnDeck, stopDeck, location.pathname]);
+  }, [cancelCrossfade, loadOnDeck, seekDeck, stopDeck, location.pathname]);
 
   const autoStartedRef = useRef(false);
 
