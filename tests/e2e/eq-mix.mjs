@@ -138,20 +138,22 @@ const neutral = d => d && Math.abs(d.hp - 20) < 1 && Math.abs(d.ls) < 0.5;
   await browser.close();
 }
 
-// ── 3. Normal → DRM-only (widget fallback) ──────────────────────────────────
+// ── 3. Next track is SoundCloud-only (label-restricted) ─────────────────────
 {
-  console.log('\n=== 3. Mix into a DRM-only track (widget fallback)');
-  const { browser, page, logs } = await openStation(9); // "I Am Newark" -> "In Ya City" (DRM)
+  console.log('\n=== 3. Next track can only be played on SoundCloud');
+  const { browser, page, logs } = await openStation(9); // "I Am Newark" -> "In Ya City" (SoundCloud-only)
   const t0 = await startTransition(page, logs);
   check('transition started', !!t0);
-  await waitUntil(t0, 17);
-  check('incoming fell back to the widget', logs.some(l => /Widget fallback/.test(l.text)));
+  await waitUntil(t0, 20);
+  check('SoundCloud-only track is skipped', logs.some(l => /can only be played on SoundCloud/.test(l.text)));
+  check('mix restarts into the following track', logs.filter(l => /Starting .*crossfade/.test(l.text)).length >= 2);
+  const s1 = await fx(page);
+  check('music keeps playing (no stall)', s1.playing.some(Boolean), JSON.stringify(s1.playing));
   await page.evaluate(() => document.querySelector('[aria-label="Pause"],[aria-label="Play"]').click());
   await page.waitForTimeout(1500);
   const s = await fx(page);
   check('Pause works', s.button === 'Play' && s.playing.every(p => !p));
   check('no page errors', !logs.some(l => l.text.startsWith('PAGEERROR')), logs.filter(l => l.text.startsWith('PAGEERROR')).map(l => l.text).join('; '));
-  console.log('INFO  headless Chrome cannot play DRM audio, so the widget track itself is not heard here');
   await browser.close();
 }
 

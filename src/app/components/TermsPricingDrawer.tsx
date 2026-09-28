@@ -36,6 +36,7 @@ export function TermsPricingDrawer({ open, onClose }: TermsPricingDrawerProps) {
           {/* Backdrop */}
           <motion.div
             className="fixed inset-0 z-[200] bg-black/85 backdrop-blur-lg"
+            onClick={onClose}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

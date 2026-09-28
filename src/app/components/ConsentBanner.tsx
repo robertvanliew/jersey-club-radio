@@ -3,9 +3,8 @@ import { Link } from 'react-router';
 import { X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-// Session-scoped keys — resets every new browser session
-const TERMS_SEEN_KEY   = 'jcr-terms-seen';      // set by TermsPricingDrawer on accept
-const BANNER_KEY       = 'jcr-consent-dismissed'; // set when user X's this banner
+const TERMS_SEEN_KEY   = 'jcr-terms-seen';      // localStorage, set by Layout when the Terms drawer closes
+const BANNER_KEY       = 'jcr-consent-dismissed'; // sessionStorage, set when user X's this banner
 
 export function ConsentBanner() {
   const [visible, setVisible] = useState(false);
@@ -16,7 +15,9 @@ export function ConsentBanner() {
 
     // Poll until the TermsPricingDrawer has been accepted, then show the banner
     const interval = setInterval(() => {
-      if (sessionStorage.getItem(TERMS_SEEN_KEY)) {
+      let termsSeen = false;
+      try { termsSeen = !!localStorage.getItem(TERMS_SEEN_KEY); } catch { }
+      if (termsSeen) {
         clearInterval(interval);
         // Small extra delay so it feels like a natural follow-up
         setTimeout(() => setVisible(true), 600);

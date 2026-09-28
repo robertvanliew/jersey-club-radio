@@ -238,6 +238,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const deckLoadSeqRef = useRef<Record<DeckId, number>>({ A: 0, B: 0 });
   const deckReadyRef = useRef<Record<DeckId, boolean>>({ A: false, B: false });
   const deckWantsPlayRef = useRef<Record<DeckId, boolean>>({ A: false, B: false });
+  // Tracks SoundCloud won't stream outside soundcloud.com (label-restricted); skipped in rotation
+  const unplayableRef = useRef<Set<string>>(new Set());
+  const onUnplayableRef = useRef<(deck: DeckId, track: Track) => void>(() => { });
   // EQ Mix per-deck FX (native decks): highpass (Rise) → lowshelf (bass swap) → analyser (level)
   const deckFxRef = useRef<Partial<Record<DeckId, { hp: BiquadFilterNode; ls: BiquadFilterNode; an: AnalyserNode }>>>({});
   // Which decks' gain/FX are currently driven by audio-clock automation (not the timer)
@@ -509,7 +512,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
           .then(r => r.json())
           .then(data => {
             if (isStale()) return;
-            if (!data.url) throw new Error('No stream URL');
+            if (!data.url) throw new Error(data.error || 'No stream URL');
             audio.src = data.url;
             deckReadyRef.current[deck] = true;
             if (deckWantsPlayRef.current[deck]) {
@@ -523,6 +526,14 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
             if (isStale()) return;
             // ── Fallback: SC Widget (cross-origin iframe, no normalization) ──
             // Needed for label-monetized tracks that SC only serves as DRM-encrypted HLS
+            // Label-restricted tracks: SoundCloud serves them only as DRM streams and the
+            // widget 404s on them too, so no embed can play them. Skip instead of stalling.
+            if (/Stream resolve failed|No progressive stream/.test(String(err?.message))) {
+              unplayableRef.current.add(track.id.videoId);
+              console.warn(`[SC Native] "${track.snippet.title}" can only be played on SoundCloud — skipping`);
+              onUnplayableRef.current(deck, track);
+              return;
+            }
             console.warn('[SC Native] stream URL failed, using Widget fallback:', err);
             loadWidget();
           });
@@ -585,8 +596,17 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const calcNextIndex = useCallback((): number => {
     const playlist = playlistRef.current;
     if (!playlist.length) return 0;
-    if (isRepeatRef.current) return currentIndexRef.current;
-    if (isShuffleRef.current) return Math.floor(Math.random() * playlist.length);
+    const playable = (i: number) => !unplayableRef.current.has(playlist[i]?.id.videoId);
+    if (isRepeatRef.current && playable(currentIndexRef.current)) return currentIndexRef.current;
+    if (isShuffleRef.current) {
+      const options = playlist.map((_, i) => i).filter(playable);
+      if (options.length) return options[Math.floor(Math.random() * options.length)];
+    }
+    // Next track in order, skipping ones known to be unplayable (SoundCloud-only)
+    for (let step = 1; step <= playlist.length; step++) {
+      const i = (currentIndexRef.current + step) % playlist.length;
+      if (playable(i)) return i;
+    }
     return (currentIndexRef.current + 1) % playlist.length;
   }, []);
 
@@ -772,6 +792,21 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   // Stable ref so YT/SC event handlers never go stale
   const hardAdvanceRef = useRef(hardAdvance);
   useEffect(() => { hardAdvanceRef.current = hardAdvance; }, [hardAdvance]);
+
+  // A track turned out to be unplayable (SoundCloud-only): move past it
+  useEffect(() => {
+    onUnplayableRef.current = (deck: DeckId, track: Track) => {
+      if (isCrossfadingRef.current && incomingDeckRef.current === deck) {
+        // Next track in a mix is unplayable: abort the mix; the progress timer
+        // immediately starts a new one into the following playable track
+        cancelCrossfade();
+      } else if (activeDeckRef.current === deck) {
+        if (!radioModeRef.current) toast(`"${track.snippet.title}" can only be played on SoundCloud — skipping`);
+        // hardAdvance also reports the new track to the station, so everyone moves on
+        hardAdvanceRef.current();
+      }
+    };
+  }, [cancelCrossfade]);
   const startCrossfadeRef = useRef(startCrossfade);
   useEffect(() => { startCrossfadeRef.current = startCrossfade; }, [startCrossfade]);
 
@@ -985,7 +1020,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     iframeA.id = 'jc-sc-widget-a';
     iframeA.src = 'https://w.soundcloud.com/player/?url=https://soundcloud.com/placeholder&auto_play=false';
     iframeA.style.cssText = 'position:fixed;width:1px;height:1px;bottom:-200px;left:-200px;opacity:0.01;pointer-events:none;z-index:9999;';
-    iframeA.allow = 'autoplay';
+    // encrypted-media: label-monetized tracks are served only as DRM-encrypted streams
+    iframeA.allow = 'autoplay; encrypted-media';
     document.body.appendChild(iframeA);
     scIframeA.current = iframeA;
 
@@ -993,7 +1029,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     iframeB.id = 'jc-sc-widget-b';
     iframeB.src = 'https://w.soundcloud.com/player/?url=https://soundcloud.com/placeholder&auto_play=false';
     iframeB.style.cssText = 'position:fixed;width:1px;height:1px;bottom:-200px;left:-200px;opacity:0.01;pointer-events:none;z-index:9999;';
-    iframeB.allow = 'autoplay';
+    iframeB.allow = 'autoplay; encrypted-media';
     document.body.appendChild(iframeB);
     scIframeB.current = iframeB;
 
@@ -1496,6 +1532,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     // Seek to correct position after player has time to buffer
     if (seekSec > 2) {
       setTimeout(() => {
+        // Only if we're still on this track (it may have been skipped as unplayable)
+        if (currentTrackRef.current?.id.videoId !== track.id.videoId) return;
         seekDeck(activeDeckRef.current, seekSec);
         setProgress(seekSec);
       }, 2000);

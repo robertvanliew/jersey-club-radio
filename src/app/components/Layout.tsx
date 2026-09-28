@@ -40,9 +40,10 @@ export function Layout({ children }: LayoutProps) {
   const crateCount = crateCtx?.crateCount ?? 0;
   const [termsOpen, setTermsOpen] = useState(false);
 
-  // Auto-open Terms & Pricing on every new browser session
+  // Auto-open Terms & Pricing once per visitor (remembered in this browser)
   useEffect(() => {
-    const seen = sessionStorage.getItem('jcr-terms-seen');
+    let seen = false;
+    try { seen = !!localStorage.getItem('jcr-terms-seen'); } catch { }
     if (!seen) {
       const timer = setTimeout(() => setTermsOpen(true), 900);
       return () => clearTimeout(timer);
@@ -51,7 +52,7 @@ export function Layout({ children }: LayoutProps) {
 
   const handleTermsClose = () => {
     setTermsOpen(false);
-    sessionStorage.setItem('jcr-terms-seen', 'true');
+    try { localStorage.setItem('jcr-terms-seen', 'true'); } catch { }
   };
 
   return (
