@@ -14,13 +14,51 @@ interface Article {
 }
 
 /* ─── Data ───────────────────────────────────────────────────────── */
+// Real articles; titles, authors and dates checked against each page (Sept 28, 2026).
+// Summaries are our own words.
 const ARTICLES: Article[] = [
-    { title: 'How Jersey Club Conquered the Internet', source: 'The Fader', author: null, published_date: null, url: '#', summary: 'Placeholder — replace with real article data. This slot is ready for your first URL.', angle: 'scene history' },
-    { title: "The Sound of Newark: Inside Jersey Club's Rise", source: 'Pitchfork', author: null, published_date: null, url: '#', summary: 'Placeholder — replace with real article data. This slot is ready for your second URL.', angle: 'scene history' },
-    { title: 'DJ Sliink Is Taking Jersey Club Global', source: 'Rolling Stone', author: null, published_date: null, url: '#', summary: 'Placeholder — replace with real article data. This slot is ready for your third URL.', angle: 'artist profile' },
-    { title: 'Why TikTok Made Jersey Club the Hottest Dance Genre', source: 'Complex', author: null, published_date: null, url: '#', summary: 'Placeholder — replace with real article data. This slot is ready for your fourth URL.', angle: 'industry trend' },
-    { title: "Jersey Club's Influence on Mainstream Pop in 2024", source: 'Billboard', author: null, published_date: null, url: '#', summary: 'Placeholder — replace with real article data. This slot is ready for your fifth URL.', angle: 'industry trend' },
-    { title: 'The Culture Behind the Music: Jersey Club in Context', source: 'The Atlantic', author: null, published_date: null, url: '#', summary: 'Placeholder — replace with real article data. This slot is ready for your sixth URL.', angle: 'op-ed' },
+    {
+        title: 'The Sky’s The Limit: An Oral History of Jersey Club',
+        source: 'The FADER', author: 'Ruth Saxelby', published_date: '2014-06-12',
+        url: 'https://www.thefader.com/2014/06/12/the-skys-the-limit-an-oral-history-of-jersey-club',
+        summary: 'DJ Tameil, DJ Sliink, UNiiQU3 and more tell the story of how the Downtown Newark sound grew from CDs sold on Broad Street into a movement.',
+        angle: 'scene history',
+    },
+    {
+        title: 'How “Just Wanna Rock” Helped Jersey Club Take Over TikTok',
+        source: 'Complex', author: 'Jordan Rose', published_date: '2022-12-16',
+        url: 'https://www.complex.com/music/a/j-rose/lil-uzi-vert-just-wanna-rock-jersey-club-tiktok',
+        summary: 'How Lil Uzi Vert’s MCVertt-produced single carried Jersey club from viral dance clips to the mainstream charts.',
+        angle: 'industry trend',
+    },
+    {
+        title: 'Jersey Club Queen UNIIQU3 mixes the past, present, and future in Hometown Sounds',
+        source: 'The FADER', author: null, published_date: '2024-05-15',
+        url: 'https://www.thefader.com/2024/05/15/jersey-club-queen-uniiqu3-serato-hometown-sounds',
+        summary: 'The DJ and producer known as the Jersey Club Queen on flipping new and nostalgic samples into the Newark sound.',
+        angle: 'artist profile',
+    },
+    {
+        title: 'Jersey Club Keeps on Moving',
+        source: 'Bandcamp Daily', author: 'Michael Piantini', published_date: '2026-01-12',
+        url: 'https://daily.bandcamp.com/scene-report/jersey-club-music-on-bandcamp',
+        summary: 'A scene report on the pioneering genre in all of its forms, and the producers pushing it forward today.',
+        angle: 'scene history',
+    },
+    {
+        title: 'Brick City Club Music: The Evolution of Jersey Club, Jersey Trap, and Tang Dance',
+        source: 'The Music Origins Project', author: 'David Grandison Jr.', published_date: '2025-03-11',
+        url: 'https://musicorigins.org/jersey-club-jersey-trap-and-tang-dance/',
+        summary: 'From underground Newark parties to viral fame: how Jersey club, Jersey trap and the Tang dance style evolved and spread.',
+        angle: 'scene history',
+    },
+    {
+        title: 'Lil Uzi Vert – “Just Wanna Rock”',
+        source: 'Stereogum', author: 'Tom Breihan', published_date: '2022-10-18',
+        url: 'https://www.stereogum.com/2203171/lil-uzi-vert-just-wanna-rock/music/',
+        summary: 'The release of the Jersey club single that had already racked up huge views as a leaked TikTok snippet.',
+        angle: 'news',
+    },
 ];
 
 /* ─── Palette ────────────────────────────────────────────────────── */
@@ -36,7 +74,8 @@ const getPal = (angle: string) => PALETTE[angle.toLowerCase()] ?? PALETTE['scene
 
 function fmtDate(iso: string | null) {
     if (!iso) return null;
-    try { return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }); }
+    // Date-only strings parse as UTC midnight; format in UTC so US visitors don't see the previous day
+    try { return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' }); }
     catch { return iso; }
 }
 
