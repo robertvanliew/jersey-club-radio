@@ -147,16 +147,15 @@ function ArtistCard({ artist, index }: { artist: ArtistProfile; index: number })
             transition={{ delay: index * 0.06, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
             onClick={() => navigate(`/artists/${artist.slug}`)}
             className="group relative cursor-pointer"
-            style={{ perspective: '800px' }}
         >
             <div
-                className="relative rounded-2xl overflow-hidden transition-all duration-500 group-hover:-translate-y-1"
+                className="relative rounded-2xl overflow-hidden transition-all duration-300 group-hover:-translate-y-1"
                 style={{
                     background: 'rgba(10, 7, 22, 0.85)',
                     border: `1px solid ${badge ? badge.borderColor : 'rgba(110, 50, 190, 0.15)'}`,
                     boxShadow: badge
-                        ? `0 0 24px ${badge.glow}, inset 0 1px 0 rgba(255,255,255,0.03)`
-                        : '0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.03)',
+                        ? `0 0 24px ${badge.glow}`
+                        : '0 4px 24px rgba(0,0,0,0.3)',
                 }}
             >
                 {/* Photo */}
@@ -165,7 +164,7 @@ function ArtistCard({ artist, index }: { artist: ArtistProfile; index: number })
                         <img
                             src={artist.photoUrl}
                             alt={artist.name}
-                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+                            className="w-full h-full object-cover"
                             loading="lazy"
                         />
                     ) : (
@@ -186,28 +185,25 @@ function ArtistCard({ artist, index }: { artist: ArtistProfile; index: number })
                         }}
                     />
 
-                    {/* Badge */}
-                    {badge && (
-                        <motion.div
-                            className="absolute top-2 right-2 flex items-center gap-1 px-1.5 py-1 rounded-full"
-                            style={{
-                                background: badge.bg,
-                                border: `1px solid ${badge.borderColor}`,
-                                boxShadow: `0 0 12px ${badge.glow}`,
-                            }}
-                            animate={{ boxShadow: [`0 0 12px ${badge.glow}`, `0 0 24px ${badge.glow}`, `0 0 12px ${badge.glow}`] }}
-                            transition={{ repeat: Infinity, duration: 2.5 }}
-                        >
-                            <badge.icon className="w-2.5 h-2.5" style={{ color: badge.color }} />
-                            <span className="text-[7px] font-black tracking-[0.2em]" style={{ color: badge.color }}>
-                                {badge.label}
-                            </span>
-                        </motion.div>
-                    )}
+
                 </div>
 
                 {/* Info */}
                 <div className="relative p-2.5 -mt-6 z-10">
+                    {/* Badge above name */}
+                    {badge && (
+                        <div
+                            className="inline-flex items-center mb-1 px-2 py-0.5 rounded-sm"
+                            style={{
+                                background: badge.bg,
+                                border: `1px solid ${badge.borderColor}`,
+                            }}
+                        >
+                            <span className="text-[7px] font-black tracking-[0.2em] uppercase" style={{ color: badge.color }}>
+                                {badge.label}
+                            </span>
+                        </div>
+                    )}
                     <h3 className="text-white font-black text-[10px] tracking-wider uppercase mb-0.5 truncate">
                         {artist.name}
                     </h3>
@@ -240,15 +236,7 @@ function ArtistCard({ artist, index }: { artist: ArtistProfile; index: number })
                     )}
                 </div>
 
-                {/* Hover glow edge */}
-                <div
-                    className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-                    style={{
-                        boxShadow: badge
-                            ? `inset 0 0 40px ${badge.glow}`
-                            : 'inset 0 0 40px rgba(157,0,255,0.08)',
-                    }}
-                />
+
             </div>
         </motion.div>
     );

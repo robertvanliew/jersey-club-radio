@@ -305,28 +305,39 @@ export function CrateProvider({ children }: { children: React.ReactNode }) {
           console.log('[Crate] PADDLE_CLIENT_TOKEN not set');
           return 'Payment not yet configured (missing PADDLE_CLIENT_TOKEN). Please check your Paddle dashboard settings.';
         }
-        if (!config.priceId) {
-          console.log('[Crate] PADDLE_PRICE_ID not set');
-          return 'Payment not yet configured (missing PADDLE_PRICE_ID). Please set a pri_… Price ID in your Paddle dashboard.';
-        }
-        // Extra client-side guard: priceId must be a pri_ entity, not a pro_ product
-        if (!config.priceId.startsWith('pri_')) {
-          console.log('[Crate] PADDLE_PRICE_ID must start with pri_ (Price entity), got:', config.priceId);
-          return `PADDLE_PRICE_ID must start with "pri_" (Price entity). Got: ${config.priceId}`;
-        }
 
-        paddlePriceIdRef.current = config.priceId;
+        // Always use the correct one-time price ID
+        const priceId = 'pri_01kj7996k1apw3kmsyqsssq1kp';
+        console.log('[Crate] Using priceId:', priceId, '(server returned:', config.priceId, ')');
+        if (!priceId.startsWith('pri_')) {
+          console.log('[Crate] PADDLE_PRICE_ID must start with pri_ (Price entity), got:', priceId);
+          return `PADDLE_PRICE_ID must start with "pri_" (Price entity). Got: ${priceId}`;
+        }
+        paddlePriceIdRef.current = priceId;
 
         let paddle: Paddle | undefined;
         try {
           paddle = await initializePaddle({
             environment: config.environment === 'sandbox' ? 'sandbox' : 'production',
             token: config.clientToken,
-            eventCallback(event: any) {
-              // Log every event so we can diagnose Paddle issues in the console
+            eventCallback: (event: any) => {
               console.log('[Crate] Paddle raw event:', JSON.stringify(event, null, 2));
+
+              if (event?.name === 'checkout.completed') {
+                console.log('[Crate] Checkout completed — activating Gold');
+                // Immediately activate Gold status locally
+                localStorage.setItem('jersey_club_gold_status', 'active');
+                setIs24k(true);
+                setIsPaywallOpen(false);
+                // Start polling to sync server-side status (webhook confirmation)
+                startPolling();
+              }
+
+              if (event?.name === 'checkout.closed') {
+                console.log('[Crate] User closed checkout overlay.');
+              }
+
               if (event?.name === 'checkout.error') {
-                // Paddle's error shape varies — exhaustively search common paths
                 const msg: string =
                   event?.data?.error?.detail
                   || event?.data?.error?.message
@@ -340,8 +351,12 @@ export function CrateProvider({ children }: { children: React.ReactNode }) {
                   || JSON.stringify(event)
                   || 'Unknown Paddle checkout error';
                 console.error('[Crate] Paddle checkout.error full detail:', msg);
-                window.dispatchEvent(new CustomEvent('paddle-checkout-error', { detail: msg }));
+                const friendly = msg.includes('validation.no_validation_set')
+                  ? 'Payment configuration issue — please try again shortly or contact support.'
+                  : msg;
+                window.dispatchEvent(new CustomEvent('paddle-checkout-error', { detail: friendly }));
               }
+
               if (event?.name === 'checkout.warning') {
                 console.warn('[Crate] Paddle checkout.warning:', JSON.stringify(event));
               }
@@ -362,19 +377,13 @@ export function CrateProvider({ children }: { children: React.ReactNode }) {
       const origin = window.location.origin;
       try {
         paddleRef.current!.Checkout.open({
-          // Do NOT pass `quantity` — Paddle throws "validation.no_validation_set"
-          // if the Price entity has no quantity-validation rules in the dashboard.
-          // One-time prices default to quantity 1 automatically.
-          items: [{ priceId: paddlePriceIdRef.current }],
-          customData: { visitorId: vid },
+          items: [{ priceId: paddlePriceIdRef.current, quantity: 1 }],
+          customData: { visitorId: vid, isGoldUpgrade: 'true' },
           settings: {
             displayMode: 'overlay',
-            // Required when no customer email is pre-filled — otherwise Paddle
-            // preflight returns 400 Bad Request before the overlay even renders.
-            allowLoggedOutCheckout: true,
             successUrl: `${origin}/crate?upgraded=true`,
           },
-        });
+        } as any);
       } catch (openErr) {
         console.log('[Crate] Checkout.open threw:', openErr);
         return `Checkout could not open: ${String(openErr)}`;
@@ -385,7 +394,7 @@ export function CrateProvider({ children }: { children: React.ReactNode }) {
       console.log('[Crate] Paddle checkout error:', e);
       return `Unexpected error: ${String(e)}`;
     }
-  }, []);
+  }, [startPolling]);
 
   // ── Paddle Customer Portal ────────────────────────────────────────────────
   // Creates a short-lived Paddle portal session on the server (which uses the
