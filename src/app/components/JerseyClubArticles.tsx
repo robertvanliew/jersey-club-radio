@@ -1,6 +1,8 @@
 import { motion, AnimatePresence, useInView } from 'motion/react';
 import { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, ArrowRight, ExternalLink } from 'lucide-react';
+import { Link } from 'react-router';
+import { articles } from '../../data/news';
 
 /* ─── Types ──────────────────────────────────────────────────────── */
 interface Article {
@@ -61,6 +63,14 @@ const ARTICLES: Article[] = [
     },
 ];
 
+/* Once our own article retelling a source is published, show and link ours instead */
+const SHOWN: (Article & { internal?: string })[] = ARTICLES.map(a => {
+    const own = articles.find(n => n.sources[0]?.url === a.url);
+    return own
+        ? { ...a, title: own.title, source: 'Jersey Club Radio', author: null, published_date: own.date, summary: own.dek, internal: `/news/${own.slug}` }
+        : a;
+});
+
 /* ─── Palette ────────────────────────────────────────────────────── */
 const PALETTE: Record<string, { text: string; border: string; glow: string }> = {
     'scene history': { text: '#C084FC', border: '#9D00FF', glow: 'rgba(157,0,255,0.5)' },
@@ -97,7 +107,7 @@ export function JerseyClubArticles() {
         return () => clearInterval(t);
     }, [paused]);
 
-    const art = ARTICLES[idx];
+    const art = SHOWN[idx];
     const p = getPal(art.angle);
     const isReal = art.url !== '#';
     const num = String(idx + 1).padStart(2, '0');
@@ -367,7 +377,16 @@ export function JerseyClubArticles() {
                                 {fmtDate(art.published_date) ? ` · ${fmtDate(art.published_date)}` : ''}
                             </span>
 
-                            {isReal && (
+                            {art.internal ? (
+                                <Link
+                                    to={art.internal}
+                                    className="inline-flex items-center gap-1.5 text-[10px] font-black tracking-[0.16em] uppercase px-4 py-2 rounded-full hover:scale-105 transition-transform"
+                                    style={{ color: '#fff', background: `linear-gradient(135deg, ${p.border}, ${p.border}CC)`, boxShadow: `0 0 20px ${p.glow}` }}
+                                >
+                                    Read Article
+                                    <ArrowRight className="w-3 h-3" />
+                                </Link>
+                            ) : isReal && (
                                 <motion.a
                                     href={art.url}
                                     target="_blank"

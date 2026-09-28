@@ -28,6 +28,8 @@ const ArtistDetail = lazy(() => import('./pages/ArtistDetail').then(m => ({ defa
 const HotPage = lazy(() => import('./pages/Hot').then(m => ({ default: m.HotPage })));
 const HotArchivePage = lazy(() => import('./pages/Hot').then(m => ({ default: m.HotArchivePage })));
 const ProducerPage = lazy(() => import('./pages/Hot').then(m => ({ default: m.ProducerPage })));
+const NewsIndexPage = lazy(() => import('./pages/News').then(m => ({ default: m.NewsIndexPage })));
+const ArticlePage = lazy(() => import('./pages/News').then(m => ({ default: m.ArticlePage })));
 
 export const router = createBrowserRouter([
   {
@@ -58,6 +60,8 @@ export const router = createBrowserRouter([
           { path: 'hot/archive', Component: HotArchivePage },
           { path: 'hot/:date', Component: HotPage },
           { path: 'producers/:slug', Component: ProducerPage },
+          { path: 'news', Component: NewsIndexPage },
+          { path: 'news/:slug', Component: ArticlePage },
         ],
       },
       // Legal pages — standalone layout (no sidebar/player chrome)

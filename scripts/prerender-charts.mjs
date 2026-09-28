@@ -15,6 +15,7 @@ import {
   SITE_URL, movement, producerSlug, formatWeek, publishedWeeks, neighbours, producerHistory,
   validateChart, chartJsonLd, producerJsonLd,
 } from '../src/data/charts/chartUtils.mjs';
+import { publishedArticles, inlineSegments, articleJsonLd, shareLinks } from '../src/data/news/newsUtils.mjs';
 
 const DIST = 'dist';
 const CHART_DIR = 'src/data/charts';
@@ -132,6 +133,34 @@ if (published.length) {
       body: `<h1>${esc(h.name)}</h1><p>Jersey club producer · ${h.tracks.length} charted track${h.tracks.length === 1 ? '' : 's'}</p><ol>${h.tracks.map(t => `<li class="jc-row"><div class="jc-main"><strong>${esc(t.title)}</strong> — ${esc(t.artist)}<br><small>Peak #${t.bestRank} · ${t.weeks.map(w => `<a href="${weekPath(w.week)}">#${w.rank} week of ${formatWeek(w.week)}</a>`).join(' · ')}</small></div></li>`).join('')}</ol><p><a href="/hot">This week's chart</a></p>`,
     }), lastmod: h.tracks.flatMap(t => t.weeks.map(w => w.week)).sort().at(-1) });
   }
+}
+
+// ── News: /news and /news/<slug> (drafts only with PRERENDER_PLACEHOLDERS=1) ──
+const allNews = JSON.parse(readFileSync('src/data/news/articles.json', 'utf8'));
+const news = publishedArticles(allNews, { includeDrafts: process.env.PRERENDER_PLACEHOLDERS === '1' });
+const inline = t => inlineSegments(t).map(s => (s.href ? `<a href="${esc(s.href)}">${esc(s.text)}</a>` : esc(s.text))).join('');
+const blockHtml = b => ('h2' in b ? `<h2>${esc(b.h2)}</h2>`
+  : 'quote' in b ? `<blockquote><p>“${esc(b.quote)}”</p><footer>${esc(b.by)}</footer></blockquote>`
+    : `<p>${inline(b.p)}</p>`);
+for (const a of news) {
+  const path = `/news/${a.slug}`;
+  const share = shareLinks(SITE_URL + path, a.title);
+  urls.push({ path: page({
+    path,
+    title: `${a.title} | Jersey Club Radio`,
+    description: a.dek,
+    jsonLd: articleJsonLd(a),
+    body: `<article><p><small>${esc(a.tag)}</small></p><h1>${esc(a.title)}</h1><p><em>${esc(a.dek)}</em></p><p><small>By ${esc(a.author)} · ${esc(a.date)}</small></p>${a.body.map(blockHtml).join('')}<h2>Sources</h2><ul>${a.sources.map(s => `<li>${esc(s.publication)}: <a href="${esc(s.url)}" rel="noopener">${esc(s.title)}</a></li>`).join('')}</ul><p>Share: <a href="${esc(share.x)}">X</a> · <a href="${esc(share.facebook)}">Facebook</a> · <a href="${esc(share.whatsapp)}">WhatsApp</a></p><p><a href="/news">More stories</a> · <a href="/hot">This week's Rising Now chart</a></p></article>`,
+  }), lastmod: a.date });
+}
+if (news.length) {
+  urls.push({ path: page({
+    path: '/news',
+    title: 'Jersey Club News & Stories | Jersey Club Radio',
+    description: `The history, the artists and the moments that built Jersey club: ${news.length} stories from Jersey Club Radio.`,
+    jsonLd: { '@context': 'https://schema.org', '@type': 'CollectionPage', name: 'Jersey Club Stories', url: `${SITE_URL}/news` },
+    body: `<h1>Jersey Club Stories</h1><ul>${news.map(a => `<li class="jc-row"><div class="jc-main"><a href="/news/${a.slug}"><strong>${esc(a.title)}</strong></a><br><small>${esc(a.dek)}</small></div></li>`).join('')}</ul>`,
+  }), lastmod: news[0].date });
 }
 
 // ── Sitemap: static pages from public/sitemap.xml + chart pages ──────────────
