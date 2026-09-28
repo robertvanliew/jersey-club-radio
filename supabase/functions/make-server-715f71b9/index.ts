@@ -685,7 +685,10 @@ app.get("/make-server-715f71b9/tracks", async (c) => {
     const filtered = allTracks.filter((t: any) =>
       t.source === 'soundcloud' || !isBlockedGenreServer(t.snippet?.title || '', t.snippet?.channelTitle || '')
     );
-    let tracks = filtered.slice(0, 100);
+    // Always serve the whole curated SoundCloud playlist (it grows past 100 as songs
+    // are added); the 100 cap only limits the YouTube supplement that follows it.
+    const scCount = filtered.filter((t: any) => t.source === 'soundcloud').length;
+    let tracks = filtered.slice(0, Math.max(100, scCount));
 
     // Merge in custom cover art URLs from KV map
     const coverArtMap = ((await kv.get('jc_cover_art_v1')) as Record<string, string>) || {};
