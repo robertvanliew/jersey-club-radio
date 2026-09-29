@@ -8,6 +8,8 @@ export type Block = { p: string } | { h2: string } | { quote: string; by: string
 export interface NewsArticle {
   slug: string;
   title: string;
+  /** Meta description for search results (under 155 characters) */
+  description?: string;
   dek: string;
   date: string;
   author: string;

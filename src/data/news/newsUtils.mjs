@@ -26,9 +26,11 @@ export const plainText = text => inlineSegments(text).map(s => s.text).join('');
 export function articleJsonLd(a) {
   return {
     '@context': 'https://schema.org',
-    '@type': 'Article',
+    '@type': 'NewsArticle',
     headline: a.title,
-    description: a.dek,
+    description: a.description ?? a.dek,
+    image: [`${SITE_URL}/jersey-club-radio-clubsymbol-social-avatar-1024x1024.png`],
+    inLanguage: 'en-US',
     datePublished: a.date,
     dateModified: a.date,
     author: { '@type': 'Organization', name: a.author, url: SITE_URL },
