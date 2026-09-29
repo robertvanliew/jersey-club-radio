@@ -6,6 +6,7 @@ import { CrateProvider } from './context/CrateContext';
 import { CratePanel } from './components/CratePanel';
 import { PaywallModal } from './components/PaywallModal';
 import { SecretKeyModal } from './components/SecretKeyModal';
+import { ContactModal } from './components/ContactModal';
 import { useGoogleAnalytics } from './hooks/useGoogleAnalytics';
 import { useVisitorTracking } from './hooks/useVisitorTracking';
 
@@ -21,6 +22,7 @@ export function PlayerWrapper() {
         <CratePanel />
         <PaywallModal />
         <SecretKeyModal />
+        <ContactModal />
         <Toaster
           theme="dark"
           position="bottom-center"
