@@ -62,7 +62,9 @@ export default function Root() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.25, ease: 'easeOut' }}
-          className="flex-1 flex flex-col min-h-full"
+          // flex-1 (not min-h-full): <main> also holds the footer, so min-h-full made this
+          // wrapper as tall as content + footer and pushed the footer down by its own height
+          className="flex-1 flex flex-col"
         >
           <Suspense fallback={<PageLoader />}>
             <Outlet />

@@ -162,7 +162,7 @@ export function Layout({ children }: LayoutProps) {
         </aside>
 
         {/* Main content */}
-        <main className="flex-1 overflow-y-auto md:ml-60">
+        <main className="flex-1 overflow-y-auto md:ml-60 flex flex-col">
           {children}
 
           {/* Legal footer — visible on every page for Paddle domain review */}
