@@ -59,7 +59,7 @@ async function startTransition(page, logs) {
 
 const fx = page => page.evaluate(() => {
   const m = window.__jcMix;
-  const d = k => m.fx[k] && { hp: m.fx[k].hp.frequency.value, ls: m.fx[k].ls.gain.value };
+  const d = k => m.fx[k] && { hp: m.fx[k].hp.frequency.value, ls: m.fx[k].ls.gain.value, mid: m.fx[k].mid.gain.value, echo: m.fx[k].echo.gain.value };
   return {
     A: d('A'), B: d('B'), scheduled: { ...m.scheduled },
     playing: window.__audios.map(a => !a.paused),
@@ -67,7 +67,7 @@ const fx = page => page.evaluate(() => {
   };
 });
 const waitUntil = async (t0, sec) => { const ms = t0 + sec * 1000 - Date.now(); if (ms > 0) await new Promise(r => setTimeout(r, ms)); };
-const neutral = d => d && Math.abs(d.hp - 20) < 1 && Math.abs(d.ls) < 0.5;
+const neutral = d => d && Math.abs(d.hp - 20) < 1 && Math.abs(d.ls) < 0.5 && Math.abs(d.mid) < 0.5 && d.echo < 0.01;
 
 // ── 1. Normal → normal ──────────────────────────────────────────────────────
 {
@@ -85,6 +85,8 @@ const neutral = d => d && Math.abs(d.hp - 20) < 1 && Math.abs(d.ls) < 0.5;
   const pre = await fx(page);
   check('both tracks playing in the overlap', pre.playing.filter(Boolean).length === 2);
   check('before swap: incoming bass cut, outgoing bass full', pre.B.ls < -20 && Math.abs(pre.A.ls) < 0.5, `in ${pre.B.ls.toFixed(1)} dB, out ${pre.A.ls.toFixed(1)} dB`);
+  check('bring-in: incoming enters highs-only (highpass open-down)', pre.B.hp > 60 && pre.B.hp < 350, `incoming hp ${pre.B.hp.toFixed(0)} Hz`);
+  check('outgoing mids dipped to make room', pre.A.mid < -4, `mid ${pre.A.mid.toFixed(1)} dB`);
 
   // Volume change mid-mix (mute, then unmute) re-schedules the curves
   const muteBtn = () => page.evaluate(() => document.querySelector('input[type="range"][max="100"]').previousElementSibling.click());
@@ -101,6 +103,10 @@ const neutral = d => d && Math.abs(d.hp - 20) < 1 && Math.abs(d.ls) < 0.5;
   await waitUntil(t0, 12.5);
   const post = await fx(page);
   check('after swap: incoming bass back, outgoing bass cut', Math.abs(post.B.ls) < 0.5 && post.A.ls < -20, `in ${post.B.ls.toFixed(1)} dB, out ${post.A.ls.toFixed(1)} dB`);
+
+  await waitUntil(t0, 14.4);
+  const tail = await fx(page);
+  check('echo-out builds at the end, outgoing filtering out', tail.A.echo > 0.3 && tail.A.hp > 300, `echo ${tail.A.echo.toFixed(2)}, hp ${tail.A.hp.toFixed(0)} Hz`);
 
   await waitUntil(t0, 17);
   const done = await fx(page);

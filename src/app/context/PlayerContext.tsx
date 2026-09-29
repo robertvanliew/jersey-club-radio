@@ -9,7 +9,8 @@ import { getMaxResThumbnail } from '../utils/getMaxResThumbnail';
 import { sanitizeTrack } from '../utils/sanitizeTrack';
 import {
   LEAD_IN, OVERLAP, TOTAL as CROSSFADE_TOTAL, UI_SWITCH_AT as UI_SWITCH_POINT, MIN_TRACK_FOR_XFADE,
-  BASS_SHELF_HZ, NEUTRAL_HP_HZ, outGainAt, inGainAt, outHighpassAt, lowshelfDbAt, sampleCurve,
+  BASS_SHELF_HZ, NEUTRAL_HP_HZ, MID_FREQ_HZ, ECHO_DELAY_S, ECHO_FEEDBACK,
+  outGainAt, inGainAt, outHighpassAt, inHighpassAt, outMidDbAt, outEchoSendAt, lowshelfDbAt, sampleCurve,
   isQuietTail, shouldStartEarly,
 } from '../lib/eqMix';
 
@@ -242,7 +243,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const unplayableRef = useRef<Set<string>>(new Set());
   const onUnplayableRef = useRef<(deck: DeckId, track: Track) => void>(() => { });
   // EQ Mix per-deck FX (native decks): highpass (Rise) → lowshelf (bass swap) → analyser (level)
-  const deckFxRef = useRef<Partial<Record<DeckId, { hp: BiquadFilterNode; ls: BiquadFilterNode; an: AnalyserNode }>>>({});
+  const deckFxRef = useRef<Partial<Record<DeckId, { hp: BiquadFilterNode; ls: BiquadFilterNode; mid: BiquadFilterNode; echo: GainNode; an: AnalyserNode }>>>({});
   // Which decks' gain/FX are currently driven by audio-clock automation (not the timer)
   const mixScheduledRef = useRef<Record<DeckId, boolean>>({ A: false, B: false });
   // Level history of the live deck, for detecting a quiet ending (fade-out / silent tail)
@@ -318,6 +319,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     fx.hp.frequency.value = NEUTRAL_HP_HZ;
     fx.ls.gain.cancelScheduledValues(0);
     fx.ls.gain.value = 0;
+    fx.mid.gain.cancelScheduledValues(0);
+    fx.mid.gain.value = 0;
+    // Stop feeding the echo; whatever is already in the delay line decays naturally
+    fx.echo.gain.cancelScheduledValues(0);
+    fx.echo.gain.value = 0;
   }, []);
 
   /** Set volume on a specific deck (routes to the correct engine + audio mode) */
@@ -402,7 +408,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       const fx = deckFxRef.current[deck]!;
       apply(gain.gain, sampleCurve(role === 'out' ? outGainAt : inGainAt, from, points, master));
       apply(fx.ls.gain, sampleCurve(t => lowshelfDbAt(role, t), from, points));
-      if (role === 'out') apply(fx.hp.frequency, sampleCurve(outHighpassAt, from, points));
+      apply(fx.hp.frequency, sampleCurve(role === 'out' ? outHighpassAt : inHighpassAt, from, points));
+      if (role === 'out') {
+        apply(fx.mid.gain, sampleCurve(outMidDbAt, from, points));
+        apply(fx.echo.gain, sampleCurve(outEchoSendAt, from, points));
+      }
       mixScheduledRef.current[deck] = true;
     }
   }, []);
@@ -979,7 +989,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       const gain = audioCtx.createGain();
       gain.gain.value = 0;
       // EQ Mix FX, neutral unless a transition is running:
-      // source → highpass (Rise) → lowshelf (bass swap) → analyser (level) → gain → compressor
+      // source → highpass → lowshelf (bass swap) → mid peak (scoop) → analyser (level) → gain → compressor
+      //                                                            gain → echo send → delay ⟲ feedback → compressor
       const hp = audioCtx.createBiquadFilter();
       hp.type = 'highpass';
       hp.frequency.value = NEUTRAL_HP_HZ;
@@ -987,14 +998,31 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       ls.type = 'lowshelf';
       ls.frequency.value = BASS_SHELF_HZ;
       ls.gain.value = 0;
+      const mid = audioCtx.createBiquadFilter();
+      mid.type = 'peaking';
+      mid.frequency.value = MID_FREQ_HZ;
+      mid.Q.value = 1;
+      mid.gain.value = 0;
       const an = audioCtx.createAnalyser();
       an.fftSize = 2048;
+      const echoSend = audioCtx.createGain();
+      echoSend.gain.value = 0;
+      const delay = audioCtx.createDelay(1);
+      delay.delayTime.value = ECHO_DELAY_S;
+      const feedback = audioCtx.createGain();
+      feedback.gain.value = ECHO_FEEDBACK;
       source.connect(hp);
       hp.connect(ls);
-      ls.connect(an);
+      ls.connect(mid);
+      mid.connect(an);
       an.connect(gain);
       gain.connect(compressor);
-      deckFxRef.current[deck] = { hp, ls, an };
+      gain.connect(echoSend);
+      echoSend.connect(delay);
+      delay.connect(feedback);
+      feedback.connect(delay);
+      delay.connect(compressor);
+      deckFxRef.current[deck] = { hp, ls, mid, echo: echoSend, an };
 
       audio.addEventListener('play', () => {
         if (destroyed) return;
