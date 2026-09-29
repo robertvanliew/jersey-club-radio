@@ -3,12 +3,13 @@ import { Link, useSearchParams } from 'react-router';
 import { Check, Loader2, Send, Megaphone, CalendarDays, Newspaper, MessageSquare } from 'lucide-react';
 import { CARD_STYLE } from '../components/RisingNow';
 import { post, Honeypot, INPUT, INPUT_STYLE, BTN, BTN_STYLE } from '../components/GrowthSection';
+import { EMAILS } from '../config/contact';
 
 const TOPICS = [
-  { id: 'advertising', label: 'Advertise / sponsor', icon: Megaphone, blurb: 'Reach Jersey club fans, dancers and producers: sponsor the Rising Now chart, the stream or the weekly email.' },
-  { id: 'booking', label: 'Bookings', icon: CalendarDays, blurb: 'DJ sets, events and live broadcasts.' },
-  { id: 'press', label: 'Press', icon: Newspaper, blurb: 'Interviews, features and media requests.' },
-  { id: 'general', label: 'General', icon: MessageSquare, blurb: 'Anything else: feedback, partnerships, questions.' },
+  { id: 'advertising', label: 'Advertise / sponsor', icon: Megaphone, email: EMAILS.ads, blurb: 'Reach Jersey club fans, dancers and producers: sponsor the Rising Now chart, the stream or the weekly email.' },
+  { id: 'booking', label: 'Bookings', icon: CalendarDays, email: EMAILS.bookings, blurb: 'DJ sets, events and live broadcasts.' },
+  { id: 'press', label: 'Press', icon: Newspaper, email: EMAILS.press, blurb: 'Interviews, features and media requests.' },
+  { id: 'general', label: 'General', icon: MessageSquare, email: EMAILS.hello, blurb: 'Anything else: feedback, partnerships, questions.' },
 ] as const;
 type TopicId = typeof TOPICS[number]['id'];
 
@@ -41,6 +42,18 @@ export function ContactPage() {
         <p className="text-xs text-[#7B6F90] mt-2">Producers: to submit music, use the <Link to="/" className="text-[#C080FF] underline">Submit your track</Link> form on the homepage.</p>
       </header>
 
+      <section className="p-4 md:p-5 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2" style={CARD_STYLE} aria-label="Email us directly">
+        {[
+          ['General', EMAILS.hello], ['Advertising & sponsorship', EMAILS.ads], ['Bookings', EMAILS.bookings],
+          ['Press', EMAILS.press], ['Music & submissions', EMAILS.music], ['Billing & refunds', EMAILS.refunds],
+        ].map(([label, email]) => (
+          <p key={email} className="text-xs text-[#9B8FB0]">
+            <span className="block text-[10px] font-black uppercase tracking-wider text-[#7B6F90]">{label}</span>
+            <a href={`mailto:${email}`} className="text-[#C080FF] hover:text-white">{email}</a>
+          </p>
+        ))}
+      </section>
+
       <section className="p-4 md:p-5" style={CARD_STYLE}>
         {state.status === 'done' ? (
           <div className="py-8 text-center">
@@ -59,7 +72,10 @@ export function ContactPage() {
                 </button>
               ))}
             </div>
-            <p className="text-xs text-[#9B8FB0]">{topic.blurb}</p>
+            <p className="text-xs text-[#9B8FB0]">
+              {topic.blurb} Prefer email? Write to{' '}
+              <a href={`mailto:${topic.email}`} className="text-[#C080FF] underline hover:text-white">{topic.email}</a>.
+            </p>
             <div className="grid gap-3 sm:grid-cols-2">
               <input className={INPUT} style={INPUT_STYLE} placeholder="Your name or company" value={f.name} onChange={e => setF({ ...f, name: e.target.value })} required maxLength={80} aria-label="Name" />
               <input className={INPUT} style={INPUT_STYLE} type="email" placeholder="Email" value={f.email} onChange={e => setF({ ...f, email: e.target.value })} required aria-label="Email" />

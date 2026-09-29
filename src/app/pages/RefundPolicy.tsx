@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import { EMAILS } from '../config/contact';
 import { ArrowLeft, AlertTriangle, CheckCircle2, Key, CreditCard, HelpCircle } from 'lucide-react';
 import logoImg from "figma:asset/68b646f3633b265a1c7a40fc0fe58afec9893e27.png";
 
@@ -146,11 +147,14 @@ export function RefundPolicy() {
           <SectionTitle icon={HelpCircle} color="#C084FC">§5 — How to Contact Us</SectionTitle>
           <div className="rounded-xl p-5" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
             <p className="text-[11px] font-mono text-[#5B4F70] leading-relaxed">
-              For billing issues, refund requests, or any payment-related concerns, please use the in-app{' '}
+              For billing issues, refund requests, or any payment-related concerns, email{' '}
+              <a href={`mailto:${EMAILS.refunds}`} className="text-[#C084FC] hover:text-[#E0AAFF] underline underline-offset-2 transition-colors">
+                {EMAILS.refunds}
+              </a>{' '}
+              or use the in-app{' '}
               <Link to="/chat" className="text-[#C084FC] hover:text-[#E0AAFF] underline underline-offset-2 transition-colors">
                 Chat
-              </Link>{' '}
-              or reach us via the contact information provided at the time of your Paddle purchase receipt. Please include your <span className="text-white font-semibold">Paddle transaction ID</span> in any refund request so we can locate your transaction quickly.
+              </Link>. Please include the <span className="text-white font-semibold">email you paid with and the date of the charge</span> (or the receipt/transaction ID) so we can locate your transaction quickly.
             </p>
             <p className="text-[11px] font-mono text-[#3B2F50] leading-relaxed mt-3">
               We aim to respond to all billing inquiries within <span className="text-white">2 business days</span>.

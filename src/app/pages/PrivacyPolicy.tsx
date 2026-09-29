@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import { EMAILS } from '../config/contact';
 import { ArrowLeft, Lock } from 'lucide-react';
 import logoImg from "figma:asset/68b646f3633b265a1c7a40fc0fe58afec9893e27.png";
 
@@ -54,7 +55,7 @@ export function PrivacyPolicy() {
             PRIVACY POLICY
           </h1>
           <p className="text-sm text-[#7B6F90]">
-            Last updated: February 22, 2026 &middot; The "Privacy-First" Promise
+            Last updated: September 29, 2026 &middot; The "Privacy-First" Promise
           </p>
         </div>
 
@@ -209,8 +210,12 @@ export function PrivacyPolicy() {
 
           <Section title="8. Contact">
             <p>
-              If you have any questions about this Privacy Policy or how your data is handled, reach out to us
-              through our Live Chat or via the community channels listed on the platform.
+              If you have any questions about this Privacy Policy, want a copy of your data, or want it deleted
+              (including removing your email from our lists), email us at{' '}
+              <a href={`mailto:${EMAILS.privacy}`} className="text-[#C084FC] underline underline-offset-2">{EMAILS.privacy}</a>.
+              When you submit a track, join the Rising Now email list, or send us a message through our contact
+              form, we store the name, email and message you provide and use them only to reply to you, send the
+              chart email you asked for, or review your submission.
             </p>
           </Section>
         </div>

@@ -4070,7 +4070,7 @@ const INQUIRIES_KEY = 'jc_inquiries_v1';       // array, newest first
 // ── Email (Resend). Off until RESEND_API_KEY is set as a Supabase secret. ─────
 // EMAIL_FROM must use a domain verified in Resend (e.g. send.jerseyclubradio.com).
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") || "";
-const EMAIL_FROM = Deno.env.get("EMAIL_FROM") || "Jersey Club Radio <hello@send.jerseyclubradio.com>";
+const EMAIL_FROM = Deno.env.get("EMAIL_FROM") || "Jersey Club Radio <hello@jerseyclubradio.com>";
 const ALERT_EMAIL = Deno.env.get("ALERT_EMAIL") || "jerseyclubradiohq@gmail.com";
 
 /** Send an email; never throws (a failed email must not fail the visitor's request). */
@@ -4123,7 +4123,7 @@ app.post("/make-server-715f71b9/submissions", async (c) => {
         html: emailShell('New track submission', row('Artist', s.name) + row('Email', s.email) + `<p style="margin:4px 0"><b>Track:</b> <a href="${escapeHtml(s.soundcloudUrl)}">${escapeHtml(s.soundcloudUrl)}</a></p>` + (s.note ? row('Note', s.note) : '') + row('Submission ID', id) + '<p>Review it in the admin panel → Inbox. Reply to this email to answer the artist.</p>'),
       }),
       sendEmail({
-        to: s.email, replyTo: ALERT_EMAIL,
+        to: s.email, replyTo: 'music@jerseyclubradio.com',
         subject: 'We got your track: Jersey Club Radio',
         html: emailShell(`Thanks, ${escapeHtml(s.name)}!`, `<p>We received your submission and we listen to every track for the station rotation.</p><p style="margin:4px 0"><b>Your track:</b> <a href="${escapeHtml(s.soundcloudUrl)}">${escapeHtml(s.soundcloudUrl)}</a></p><p>A heads-up on how it works: our weekly <b>Rising Now</b> chart is ranked by SoundCloud growth, so the best way onto it is getting your people to listen and share.</p><p>Keep the tracks coming. Reply to this email if you have questions.</p>`),
       }),

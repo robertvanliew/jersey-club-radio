@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import { EMAILS } from '../config/contact';
 import { ArrowLeft, Radio, Shield } from 'lucide-react';
 import logoImg from "figma:asset/68b646f3633b265a1c7a40fc0fe58afec9893e27.png";
 
@@ -146,6 +147,13 @@ export function TermsOfService() {
               We reserve the right to update these Terms of Service at any time. Continued use of the platform
               after changes are posted constitutes acceptance of the revised terms. We encourage you to review
               this page periodically.
+            </p>
+          </Section>
+
+          <Section title="7. Contact">
+            <p>
+              Questions about these terms? Email{' '}
+              <a href={`mailto:${EMAILS.hello}`} className="text-[#C084FC] underline underline-offset-2">{EMAILS.hello}</a>.
             </p>
           </Section>
         </div>

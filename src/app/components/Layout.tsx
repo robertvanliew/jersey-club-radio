@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router';
 import { Radio, Zap, Search, ListMusic, RefreshCw, Gamepad2, MessageCircle, Film, ShoppingBag, Disc3, FileText, DollarSign, RotateCcw, Lock as LockIcon, Info, Users } from 'lucide-react';
+import { EMAILS } from '../config/contact';
 import { usePlayer } from '../context/PlayerContext';
 import { useCrateSafe } from '../context/CrateContext';
 import { Player } from './Player';
@@ -256,6 +257,9 @@ export function Layout({ children }: LayoutProps) {
               {/* ── Tagline ── */}
               <p className="text-[13px] text-[#C084FC] text-center mb-6" style={{ opacity: 0.6 }}>
                 The culture. Non-stop.
+              </p>
+              <p className="text-center text-xs mb-5">
+                <a href={`mailto:${EMAILS.hello}`} className="text-[#9B8FB0] hover:text-white transition-colors">{EMAILS.hello}</a>
               </p>
 
               {/* ── Divider ── */}

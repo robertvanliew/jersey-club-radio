@@ -5,6 +5,7 @@ import { projectId, publicAnonKey } from '/utils/supabase/info';
 import { usePlayer } from '../context/PlayerContext';
 import { weeks } from '../../data/charts';
 import { STRIPE_FAST_TRACK_URL, FAST_TRACK_LABEL } from '../config/monetization';
+import { EMAILS } from '../config/contact';
 import { CARD_STYLE } from './RisingNow';
 
 const BASE = `https://${projectId}.supabase.co/functions/v1/make-server-715f71b9`;
@@ -85,7 +86,7 @@ function SubmitTrackCard() {
   return (
     <section className="lg:col-span-2 p-4 md:p-5 flex flex-col" style={CARD_STYLE} aria-labelledby="submit-heading">
       <h2 id="submit-heading" className="text-lg font-black text-white flex items-center gap-2"><Send className="w-4 h-4 text-[#FF0080]" /> Submit your track</h2>
-      <p className="text-xs text-[#9B8FB0] mt-1 mb-4">Producers and DJs: send us your Jersey club. We listen to every submission for the station rotation. Rising Now stays organic: it's ranked by SoundCloud growth, and placement can't be bought.</p>
+      <p className="text-xs text-[#9B8FB0] mt-1 mb-4">Producers and DJs: send us your Jersey club. We listen to every submission for the station rotation. Rising Now stays organic: it's ranked by SoundCloud growth, and placement can't be bought. Questions? <a href={`mailto:${EMAILS.music}`} className="text-[#C080FF] underline hover:text-white">{EMAILS.music}</a></p>
       {state.status === 'done' ? (
         <div className="flex flex-col gap-3 flex-1 justify-center">
           <p className="text-sm text-white flex items-center gap-2"><Check className="w-4 h-4 text-[#00FF88]" /> Got it, thanks! We'll give it a listen.</p>
