@@ -2,7 +2,7 @@ import { Hono } from "npm:hono";
 import { cors } from "npm:hono/cors";
 import { logger } from "npm:hono/logger";
 import * as kv from "./kv_store.ts";
-import { validateSubmission, validateSubscribe, SUBMISSION_STATUSES } from "./growth_validate.ts";
+import { validateSubmission, validateSubscribe, validateContact, escapeHtml, SUBMISSION_STATUSES } from "./growth_validate.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2.49.8";
 // Official Paddle Node SDK — used for typed webhook verification (unmarshal)
 import { Paddle, EventName } from "npm:@paddle/paddle-node-sdk";
@@ -4065,6 +4065,32 @@ app.put("/make-server-715f71b9/admin/playlist-order", async (c) => {
 const SUBMISSIONS_KEY = 'jc_submissions_v1';   // array, newest first
 const SUBSCRIBERS_KEY = 'jc_subscribers_v1';   // { [email]: { createdAt, source } }
 
+const INQUIRIES_KEY = 'jc_inquiries_v1';       // array, newest first
+
+// ── Email (Resend). Off until RESEND_API_KEY is set as a Supabase secret. ─────
+// EMAIL_FROM must use a domain verified in Resend (e.g. send.jerseyclubradio.com).
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") || "";
+const EMAIL_FROM = Deno.env.get("EMAIL_FROM") || "Jersey Club Radio <hello@send.jerseyclubradio.com>";
+const ALERT_EMAIL = Deno.env.get("ALERT_EMAIL") || "jerseyclubradiohq@gmail.com";
+
+/** Send an email; never throws (a failed email must not fail the visitor's request). */
+async function sendEmail(msg: { to: string; subject: string; html: string; replyTo?: string }): Promise<boolean> {
+  if (!RESEND_API_KEY) { console.log(`[Email] skipped (no RESEND_API_KEY): ${msg.subject}`); return false; }
+  try {
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: EMAIL_FROM, to: [msg.to], subject: msg.subject, html: msg.html, ...(msg.replyTo ? { reply_to: msg.replyTo } : {}) }),
+    });
+    if (!r.ok) console.log(`[Email] Resend ${r.status}: ${(await r.text()).slice(0, 300)}`);
+    return r.ok;
+  } catch (e) { console.log('[Email] error:', e); return false; }
+}
+
+const emailShell = (title: string, body: string) =>
+  `<div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a"><h2 style="color:#6a00c8">${title}</h2>${body}<p style="color:#888;font-size:12px;margin-top:24px">Jersey Club Radio · jerseyclubradio.com</p></div>`;
+const row = (k: string, v: string) => `<p style="margin:4px 0"><b>${k}:</b> ${escapeHtml(v)}</p>`;
+
 /** Per-IP daily limit (IP is hashed, never stored raw). Returns false when over the limit. */
 async function underDailyLimit(c: any, kind: string, max: number): Promise<boolean> {
   const day = new Date().toISOString().slice(0, 10);
@@ -4089,6 +4115,19 @@ app.post("/make-server-715f71b9/submissions", async (c) => {
     list.unshift({ id, ...v.value, status: 'new', fastTrack: false, createdAt: new Date().toISOString() });
     await kv.set(SUBMISSIONS_KEY, list.slice(0, 2000));
     console.log(`[Submissions] new: ${v.value.soundcloudUrl}`);
+    const s = v.value;
+    await Promise.all([
+      sendEmail({
+        to: ALERT_EMAIL, replyTo: s.email,
+        subject: `New track submission: ${s.name}`,
+        html: emailShell('New track submission', row('Artist', s.name) + row('Email', s.email) + `<p style="margin:4px 0"><b>Track:</b> <a href="${escapeHtml(s.soundcloudUrl)}">${escapeHtml(s.soundcloudUrl)}</a></p>` + (s.note ? row('Note', s.note) : '') + row('Submission ID', id) + '<p>Review it in the admin panel → Inbox. Reply to this email to answer the artist.</p>'),
+      }),
+      sendEmail({
+        to: s.email, replyTo: ALERT_EMAIL,
+        subject: 'We got your track: Jersey Club Radio',
+        html: emailShell(`Thanks, ${escapeHtml(s.name)}!`, `<p>We received your submission and we listen to every track for the station rotation.</p><p style="margin:4px 0"><b>Your track:</b> <a href="${escapeHtml(s.soundcloudUrl)}">${escapeHtml(s.soundcloudUrl)}</a></p><p>A heads-up on how it works: our weekly <b>Rising Now</b> chart is ranked by SoundCloud growth, so the best way onto it is getting your people to listen and share.</p><p>Keep the tracks coming. Reply to this email if you have questions.</p>`),
+      }),
+    ]);
     return c.json({ ok: true, id });
   } catch (e) {
     console.log('[Submissions] error:', e);
@@ -4106,6 +4145,11 @@ app.post("/make-server-715f71b9/subscribe", async (c) => {
     if (!subs[v.value.email]) {
       subs[v.value.email] = { createdAt: new Date().toISOString(), source: 'homepage' };
       await kv.set(SUBSCRIBERS_KEY, subs);
+      await sendEmail({
+        to: ALERT_EMAIL,
+        subject: `New Rising Now subscriber (${Object.keys(subs).length} total)`,
+        html: emailShell('New chart subscriber', row('Email', v.value.email) + row('Total subscribers', String(Object.keys(subs).length))),
+      });
     }
     return c.json({ ok: true });
   } catch (e) {
@@ -4114,13 +4158,37 @@ app.post("/make-server-715f71b9/subscribe", async (c) => {
   }
 });
 
-// GET /admin/submissions — review list (+ subscriber count)
+// POST /contact — bookings, advertising/sponsorship, press, general inquiries
+app.post("/make-server-715f71b9/contact", async (c) => {
+  try {
+    const v = validateContact(await c.req.json().catch(() => null));
+    if (!v.ok) return v.spam ? c.json({ ok: true }) : c.json({ error: v.error }, 400);
+    if (!(await underDailyLimit(c, 'contact', 5))) return c.json({ error: 'Too many messages today. Please try again tomorrow.' }, 429);
+    const list = ((await kv.get(INQUIRIES_KEY)) as any[]) || [];
+    const id = crypto.randomUUID();
+    list.unshift({ id, ...v.value, status: 'new', createdAt: new Date().toISOString() });
+    await kv.set(INQUIRIES_KEY, list.slice(0, 2000));
+    const q = v.value;
+    await sendEmail({
+      to: ALERT_EMAIL, replyTo: q.email,
+      subject: `New ${q.topic} inquiry: ${q.name}`,
+      html: emailShell(`New ${q.topic} inquiry`, row('From', `${q.name} <${q.email}>`) + row('Topic', q.topic) + `<p style="white-space:pre-wrap;border-left:3px solid #6a00c8;padding-left:10px">${escapeHtml(q.message)}</p><p>Reply to this email to answer them directly.</p>`),
+    });
+    return c.json({ ok: true });
+  } catch (e) {
+    console.log('[Contact] error:', e);
+    return c.json({ error: 'Something went wrong. Please try again.' }, 500);
+  }
+});
+
+// GET /admin/submissions — review list (+ inquiries, subscriber count, email status)
 app.get("/make-server-715f71b9/admin/submissions", async (c) => {
   const auth = await requireAdmin(c);
   if (auth instanceof Response) return auth;
   const list = ((await kv.get(SUBMISSIONS_KEY)) as any[]) || [];
+  const inquiries = ((await kv.get(INQUIRIES_KEY)) as any[]) || [];
   const subs = ((await kv.get(SUBSCRIBERS_KEY)) as Record<string, any>) || {};
-  return c.json({ submissions: list, subscriberCount: Object.keys(subs).length });
+  return c.json({ submissions: list, inquiries, subscriberCount: Object.keys(subs).length, emailEnabled: !!RESEND_API_KEY });
 });
 
 // PUT /admin/submissions/:id — set status / mark fast-track paid

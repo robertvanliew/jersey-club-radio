@@ -267,6 +267,8 @@ export function Layout({ children }: LayoutProps) {
               {/* ── Row 3: Legal links ── */}
               <div className="flex flex-wrap justify-center items-center gap-x-5 gap-y-1.5 mb-4">
                 {[
+                  { to: '/contact', label: 'Contact' },
+                  { to: '/contact?topic=advertising', label: 'Advertise' },
                   { to: '/terms', label: 'Terms of Service' },
                   { to: '/privacy', label: 'Privacy Policy' },
                   { to: '/pricing', label: 'Pricing' },

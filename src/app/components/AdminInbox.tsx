@@ -16,6 +16,8 @@ interface Submission {
 export function AdminInbox({ getToken }: { getToken: () => Promise<string | null> }) {
   const [subs, setSubs] = useState<Submission[] | null>(null);
   const [subscriberCount, setSubscriberCount] = useState(0);
+  const [inquiries, setInquiries] = useState<{ id: string; name: string; email: string; topic: string; message: string; createdAt: string }[]>([]);
+  const [emailEnabled, setEmailEnabled] = useState(true);
   const [filter, setFilter] = useState<'all' | typeof STATUSES[number]>('new');
 
   const authed = useCallback(async (path: string, init: RequestInit = {}) => {
@@ -30,6 +32,7 @@ export function AdminInbox({ getToken }: { getToken: () => Promise<string | null
     try {
       const d = await (await authed('/admin/submissions')).json();
       setSubs(d.submissions); setSubscriberCount(d.subscriberCount);
+      setInquiries(d.inquiries ?? []); setEmailEnabled(d.emailEnabled !== false);
     } catch (e) { toast.error('Could not load the inbox: ' + String(e)); setSubs([]); }
   }, [authed]);
   useEffect(() => { load(); }, [load]);
@@ -57,6 +60,28 @@ export function AdminInbox({ getToken }: { getToken: () => Promise<string | null
 
   return (
     <div className="flex flex-col gap-4">
+      {!emailEnabled && (
+        <p className="text-xs px-4 py-3 rounded-xl text-[#FFD700]" style={{ background: 'rgba(255,215,0,0.08)', border: '1px solid rgba(255,215,0,0.25)' }}>
+          Email alerts are off: new submissions and inquiries are saved here, but no emails are sent until the RESEND_API_KEY secret is set on the Supabase function.
+        </p>
+      )}
+      {inquiries.length > 0 && (
+        <div className="p-4 rounded-xl" style={{ background: '#0A0716', border: '1px solid rgba(255,0,128,0.25)' }}>
+          <p className="text-sm font-black text-white mb-2">Inquiries ({inquiries.length})</p>
+          <div className="flex flex-col gap-3">
+            {inquiries.slice(0, 50).map(q => (
+              <div key={q.id} className="text-xs" style={{ borderTop: '1px solid rgba(157,0,255,0.14)', paddingTop: 8 }}>
+                <p className="text-white font-bold">
+                  <span className="uppercase text-[9px] font-black tracking-wider px-1.5 py-0.5 rounded mr-2" style={{ background: 'rgba(255,0,128,0.15)', color: '#FF4DA6' }}>{q.topic}</span>
+                  {q.name} · <a href={`mailto:${q.email}`} className="text-[#C080FF]">{q.email}</a>
+                </p>
+                <p className="text-[#B9A6D6] mt-1 whitespace-pre-wrap break-words">{q.message}</p>
+                <p className="text-[10px] text-[#5B4F70] mt-1">{new Date(q.createdAt).toLocaleString()}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-3">
         <div className="px-4 py-3 rounded-xl" style={{ background: '#0A0716', border: '1px solid rgba(80,30,140,0.3)' }}>
           <p className="text-2xl font-black text-white leading-none">{subscriberCount}</p>

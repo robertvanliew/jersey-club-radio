@@ -10,12 +10,12 @@ import { CARD_STYLE } from './RisingNow';
 const BASE = `https://${projectId}.supabase.co/functions/v1/make-server-715f71b9`;
 const HEADERS = { Authorization: `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' };
 
-const INPUT = 'w-full h-10 px-3 rounded-lg text-sm text-white placeholder-[#5B4F70] outline-none focus:ring-2 focus:ring-[#9D00FF]';
-const INPUT_STYLE: React.CSSProperties = { background: '#06000F', border: '1px solid rgba(157,0,255,0.25)' };
-const BTN = 'h-10 px-5 rounded-lg text-sm font-bold text-white flex items-center justify-center gap-2 disabled:opacity-60';
-const BTN_STYLE: React.CSSProperties = { background: 'linear-gradient(135deg, #9D00FF, #FF0080)' };
+export const INPUT = 'w-full h-10 px-3 rounded-lg text-sm text-white placeholder-[#5B4F70] outline-none focus:ring-2 focus:ring-[#9D00FF]';
+export const INPUT_STYLE: React.CSSProperties = { background: '#06000F', border: '1px solid rgba(157,0,255,0.25)' };
+export const BTN = 'h-10 px-5 rounded-lg text-sm font-bold text-white flex items-center justify-center gap-2 disabled:opacity-60';
+export const BTN_STYLE: React.CSSProperties = { background: 'linear-gradient(135deg, #9D00FF, #FF0080)' };
 
-async function post(path: string, body: unknown): Promise<{ ok: boolean; id?: string; error?: string }> {
+export async function post(path: string, body: unknown): Promise<{ ok: boolean; id?: string; error?: string }> {
   try {
     const r = await fetch(`${BASE}/${path}`, { method: 'POST', headers: HEADERS, body: JSON.stringify(body) });
     const d = await r.json().catch(() => ({}));
@@ -26,7 +26,7 @@ async function post(path: string, body: unknown): Promise<{ ok: boolean; id?: st
 }
 
 /** Honeypot: hidden from people, filled by bots */
-const Honeypot = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
+export const Honeypot = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
   <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" value={value} onChange={e => onChange(e.target.value)}
     style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }} />
 );

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateSubmission, validateSubscribe, SUBMISSION_STATUSES } from './growth_validate';
+import { validateSubmission, validateSubscribe, validateContact, escapeHtml, SUBMISSION_STATUSES } from './growth_validate';
 
 const good = { name: 'DJ Test', email: 'Dj@Example.com ', soundcloudUrl: 'https://soundcloud.com/dj-test/new-flip', note: 'Jersey club flip' };
 
@@ -35,3 +35,26 @@ describe('validateSubscribe', () => {
 });
 
 it('statuses', () => expect(SUBMISSION_STATUSES).toEqual(['new', 'reviewed', 'accepted', 'rejected']));
+
+describe('validateContact', () => {
+  const ok = { name: 'Brand Co', email: 'Ads@Brand.com', topic: 'advertising', message: 'We want to sponsor Rising Now.' };
+  it('accepts and normalises', () => {
+    expect(validateContact(ok)).toEqual({ ok: true, value: { name: 'Brand Co', email: 'ads@brand.com', topic: 'advertising', message: 'We want to sponsor Rising Now.' } });
+  });
+  it('defaults an unknown topic to general', () => {
+    expect(validateContact({ ...ok, topic: 'hax' })).toMatchObject({ ok: true, value: { topic: 'general' } });
+  });
+  it.each([
+    ['empty message', { message: '  ' }],
+    ['huge message', { message: 'x'.repeat(5001) }],
+    ['bad email', { email: 'x' }],
+    ['missing name', { name: '' }],
+  ])('rejects %s', (_, patch) => expect(validateContact({ ...ok, ...patch }).ok).toBe(false));
+  it('honeypot', () => expect(validateContact({ ...ok, website: 'x' })).toMatchObject({ ok: false, spam: true }));
+});
+
+describe('escapeHtml', () => {
+  it('neutralises markup from visitors before it goes into an email', () => {
+    expect(escapeHtml('<b>"hi"</b> & \'x\'')).toBe('&lt;b&gt;&quot;hi&quot;&lt;/b&gt; &amp; &#39;x&#39;');
+  });
+});
