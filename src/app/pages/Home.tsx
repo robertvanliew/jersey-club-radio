@@ -535,10 +535,12 @@ export function Home() {
 
       {/* Two-column layout — same height for playlist and sidebar */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6" style={{ alignItems: 'start' }}>
-        {/* Left column: playlist, then Rising Now directly under it */}
-        <div className="lg:col-span-2 flex flex-col gap-6 min-w-0">
+        {/* Left column: playlist, then Rising Now directly under it.
+            Below lg both columns are `contents`, so their cards join the outer grid and
+            `order` puts Top Songs first on mobile (its 1-2-3 animation shows up top). */}
+        <div className="contents lg:col-span-2 lg:flex lg:flex-col gap-6 min-w-0">
         {/* Playlist */}
-        <div className="flex flex-col rounded-xl" style={{ height: 'calc(100vh - 300px)', background: '#0A0716', border: '1px solid rgba(110,50,190,0.14)', borderRadius: '12px', fontFamily: "'General Sans', sans-serif" }}>
+        <div className="order-2 lg:order-none flex flex-col rounded-xl" style={{ height: 'calc(100vh - 300px)', background: '#0A0716', border: '1px solid rgba(110,50,190,0.14)', borderRadius: '12px', fontFamily: "'General Sans', sans-serif" }}>
           <div className="flex flex-col px-3 md:px-4 pt-3 md:pt-4 pb-1 md:pb-0 mb-2 md:mb-4">
             {/* Row 1: Title left, Play All right */}
             <div className="flex items-center justify-between gap-3">
@@ -600,16 +602,16 @@ export function Home() {
           )}
         </div>
 
-        <RisingNowSection />
+        <div className="order-3 lg:order-none min-w-0"><RisingNowSection /></div>
         </div>
 
         {/* Right column: Most Played (matches playlist height), then Producers to Watch beside Rising Now */}
         {/* Stretches to the left column's height so both columns end level */}
-        <div className="lg:col-span-1 flex flex-col gap-6 min-w-0 lg:self-stretch">
-          <div className="shrink-0" style={{ height: 'calc(100vh - 300px)' }}>
+        <div className="contents lg:col-span-1 lg:flex lg:flex-col gap-6 min-w-0 lg:self-stretch">
+          <div className="order-1 lg:order-none shrink-0 min-w-0" style={{ height: 'calc(100vh - 300px)' }}>
             <MostPlayed />
           </div>
-          <ProducersToWatch className="lg:flex-1" />
+          <ProducersToWatch className="order-4 lg:order-none lg:flex-1" />
         </div>
       </div>
 
