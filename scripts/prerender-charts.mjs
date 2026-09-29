@@ -217,7 +217,8 @@ ${latestChart ? `<h2>This week's Rising Now chart</h2><p>Week of ${formatWeek(la
 ${news.length ? `<h2>Jersey club stories</h2><ul>${news.map(a => `<li><a href="/news/${esc(a.slug)}">${esc(a.title)}</a></li>`).join('')}</ul>` : ''}
 ${artistList.length ? `<h2>Jersey club artists</h2><ul>${artistList.map(a => `<li><a href="${a.path}">${esc(a.name)}</a>${a.role ? `, ${esc(a.role)}` : ''}</li>`).join('')}</ul>` : ''}
 <h2>Jersey club questions</h2>${e.faq.map(f => `<h3>${esc(f.q)}</h3><p>${esc(f.a)}</p>`).join('')}
-<p><a href="https://www.instagram.com/jerseyclubradio/">Instagram</a> · <a href="https://x.com/jerseyclubradio">X</a> · <a href="https://www.youtube.com/@Jerseyclubradio">YouTube</a> · <a href="https://www.tiktok.com/@jerseyclubradio">TikTok</a></p>`;
+<p><a href="https://www.instagram.com/jerseyclubradio/">Instagram</a> · <a href="https://x.com/jerseyclubradio">X</a> · <a href="https://www.youtube.com/@Jerseyclubradio">YouTube</a> · <a href="https://www.tiktok.com/@jerseyclubradio">TikTok</a></p>
+<p>Designed &amp; engineered by <a href="https://robertvanliew.com">Robert Van Liew</a></p>`;
 writeFileSync(join(DIST, 'index.html'), template
   .replace(/<noscript>[\s\S]*?<\/noscript>\s*/, '')
   .replace('</head>', `${STYLE}\n</head>`)

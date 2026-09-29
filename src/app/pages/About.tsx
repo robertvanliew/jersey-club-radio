@@ -615,7 +615,15 @@ function PageFooter() {
     return (
         <footer className="border-t border-white/[0.06]">
             <div className="max-w-[880px] mx-auto px-5 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
-                <p className="text-xs text-[#3B2F50]">© 2026 Jersey Club Radio 24/7. All rights reserved.</p>
+                <div className="text-center md:text-left">
+                    <p className="text-xs text-[#3B2F50]">© 2026 Jersey Club Radio 24/7. All rights reserved.</p>
+                    <p className="text-xs text-[#5B4F70] mt-1">
+                        Designed &amp; engineered by{' '}
+                        <a href="https://robertvanliew.com" target="_blank" rel="noopener" className="font-semibold text-[#A99DBF] hover:text-[#C77DFF] underline-offset-2 hover:underline transition-colors">
+                            Robert Van Liew
+                        </a>
+                    </p>
+                </div>
                 <div className="flex gap-4">
                     <Link to="/terms" className="text-xs text-[#9D00FF] hover:text-[#C084FC] transition-colors font-semibold">
                         Terms of Service

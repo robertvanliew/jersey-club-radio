@@ -308,6 +308,12 @@ export function Layout({ children }: LayoutProps) {
                 Copyright 2026 Jersey Club Radio 24/7
               </p>
               <p className="text-[10px] text-[#3B2F50] text-center mt-[5px] mb-[0px]">&copy; Built by a Jersey Club DJ</p>
+              <p className="text-[10px] text-[#5B4F70] text-center mt-[5px]">
+                Designed &amp; engineered by{' '}
+                <a href="https://robertvanliew.com" target="_blank" rel="noopener" className="font-semibold text-[#A99DBF] hover:text-[#C77DFF] underline-offset-2 hover:underline transition-colors">
+                  Robert Van Liew
+                </a>
+              </p>
             </div>
           </footer>
         </main>
