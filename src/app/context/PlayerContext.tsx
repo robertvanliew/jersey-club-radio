@@ -1072,7 +1072,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     // ── Web Audio API: DynamicsCompressor chain for volume normalization ──
     // Audio graph: MediaElementSource → DeckGain → Compressor → destination
     // The compressor levels out track-to-track volume differences automatically.
-    const audioCtx = new AudioContext();
+    // 'playback': larger output buffers. Nothing here needs low latency, and the default
+    // ('interactive') can underrun on busy phones, which is heard as stutters and wobble
+    const audioCtx = new AudioContext({ latencyHint: 'playback' });
     const compressor = audioCtx.createDynamicsCompressor();
     compressor.threshold.value = -24;   // compress peaks above -24 dBFS
     compressor.knee.value = 8;     // smooth musical onset

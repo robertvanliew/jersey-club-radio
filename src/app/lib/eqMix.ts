@@ -2,27 +2,37 @@
 // Pure functions of "seconds since the transition started" so the engine can sample
 // them onto the Web Audio clock, and so every curve is unit-tested.
 //
+// The two songs are never beat-matched (no tempo analysis), so their drums must not play
+// loudly together: two grooves at different tempos clash and sound like the music is
+// speeding up and slowing down. So this is an "echo out, drop in" swap, the standard DJ move
+// for songs that aren't beat-matched: the incoming song is only a quiet, highs-only tease
+// until the swap; then the outgoing song echoes out in about a second and a half while the
+// incoming comes up to full. Both are loud together for only about a second.
+//
 // Timeline (seconds):
-//   0 ─── LEAD_IN ─────────── SWAP_AT ─────────── TOTAL
-//   outgoing: full volume, Rise sweep + mid dip · full volume · bass out, filters up, fades, echo tail
-//   incoming: silent · highs first (highpass opens down), bass cut, volume up fast · full range at the swap
+//   0 ─── LEAD_IN ─────────── SWAP_AT ─── +DROP ─────── TOTAL
+//   outgoing: full, Rise sweep + mid dip · full, echo builds · drops out on the echo · (silent)
+//   incoming: silent · quiet tease, highs only, bass cut · up to full, full range · full
 
 export const LEAD_IN = 5;                          // solo fade-out before the incoming track starts
-export const OVERLAP = 10;                         // both tracks audible
+export const OVERLAP = 10;                         // incoming playing while the outgoing still runs
 export const TOTAL = LEAD_IN + OVERLAP;
-export const SWAP_AT = LEAD_IN + OVERLAP / 2;      // bass swap: mid-overlap
+export const SWAP_AT = LEAD_IN + OVERLAP / 2;      // bass swap + drop: mid-overlap
 export const UI_SWITCH_AT = 10;                    // "now playing" flips to the incoming track
 export const BASS_CUT_DB = -24;                    // lowshelf cut when a deck's bass is "out"
 export const BASS_SHELF_HZ = 200;
 export const NEUTRAL_HP_HZ = 20;                   // highpass at 20 Hz is effectively bypassed
 export const RISE_HP_HZ = 150;                     // Rise thins the outgoing low end up to here
-export const OUT_FILTER_END_HZ = 800;              // after the swap the outgoing filters out up to here
-export const IN_HP_START_HZ = 350;                 // incoming enters highs-only, opening down from here
-export const IN_HP_SWAP_HZ = 60;                   // ...to here by the swap (bass then drops in fully)
+export const OUT_FILTER_END_HZ = 800;              // after the swap the outgoing (echo) filters out up to here
+export const IN_HP_START_HZ = 350;                 // the tease enters highs-only from here
+export const IN_HP_SWAP_HZ = 200;                  // ...and stays thin (no kick or bass) until the swap
+export const TEASE_GAIN = 0.25;                    // incoming level before the swap: a hint, not a second groove
+export const DROP_SECONDS = 1.5;                   // outgoing gone this long after the swap
+export const RISE_IN_SECONDS = 1;                  // incoming reaches full this long after it starts rising
 export const MID_SCOOP_DB = -5;                    // outgoing mid dip that makes room for the incoming
 export const MID_FREQ_HZ = 1200;
-export const ECHO_SEND_MAX = 0.6;                  // outgoing echo-out level at the very end
-export const ECHO_SECONDS = 2.5;                   // echo builds over the last seconds
+export const ECHO_SEND_MAX = 0.6;                  // outgoing echo-out level from the swap on
+export const ECHO_SECONDS = 1.5;                   // echo builds over the seconds before the swap
 export const ECHO_DELAY_S = 0.32;
 export const ECHO_FEEDBACK = 0.45;
 export const QUIET_WINDOW = 5;                     // readings (~2s at the 400ms player tick)
@@ -36,17 +46,20 @@ export function equalPowerIn(t: number): number { return Math.pow(Math.sin(t * M
 
 const expSweep = (from: number, to: number, k: number) => from * Math.pow(to / from, clamp01(k));
 
-/** Outgoing volume (0..1 of master): full until the swap, then an equal-power fade out */
+/** Outgoing volume (0..1 of master): full until the swap, then drops out fast (the echo carries it) */
 export function outGainAt(t: number): number {
   if (t < SWAP_AT) return 1;
-  return equalPowerOut(clamp01((t - SWAP_AT) / (TOTAL - SWAP_AT)));
+  return equalPowerOut(clamp01((t - SWAP_AT) / DROP_SECONDS));
 }
 
-/** Incoming volume (0..1 of master): up fast during the bring-in (EQ does the blending) */
+/** When the incoming starts rising from the tease to full (just before the swap) */
+const IN_RISE_AT = SWAP_AT - 0.25;
+
+/** Incoming volume (0..1 of master): a quiet tease during the bring-in, full right after the swap */
 export function inGainAt(t: number): number {
   if (t < LEAD_IN) return 0;
-  if (t < SWAP_AT) return 0.95 * equalPowerIn(clamp01((t - LEAD_IN) / ((SWAP_AT - LEAD_IN) * 0.6)));
-  return 0.95 + 0.05 * clamp01(t - SWAP_AT);
+  if (t < IN_RISE_AT) return TEASE_GAIN * equalPowerIn(clamp01((t - LEAD_IN) / (SWAP_AT - 1 - LEAD_IN)));
+  return TEASE_GAIN + (1 - TEASE_GAIN) * equalPowerIn(clamp01((t - IN_RISE_AT) / RISE_IN_SECONDS));
 }
 
 /** Outgoing highpass (Hz): Rise over the lead-in, hold, then filter out after the swap */
@@ -56,7 +69,7 @@ export function outHighpassAt(t: number): number {
   return expSweep(RISE_HP_HZ, OUT_FILTER_END_HZ, (t - SWAP_AT) / (TOTAL - SWAP_AT));
 }
 
-/** Incoming highpass (Hz): enters highs-only and opens downward; fully open from the swap */
+/** Incoming highpass (Hz): the tease stays highs-only (no kick); fully open from the swap */
 export function inHighpassAt(t: number): number {
   if (t >= SWAP_AT) return NEUTRAL_HP_HZ;
   if (t < LEAD_IN) return IN_HP_START_HZ;
@@ -68,9 +81,9 @@ export function outMidDbAt(t: number): number {
   return MID_SCOOP_DB * clamp01(t / LEAD_IN) + 0; // "+ 0" turns -0 into 0
 }
 
-/** Outgoing echo send (0..1): builds over the last few seconds for an echo-out ending */
+/** Outgoing echo send (0..1): builds into the swap, so the drop-out leaves an echo tail */
 export function outEchoSendAt(t: number): number {
-  return ECHO_SEND_MAX * clamp01((t - (TOTAL - ECHO_SECONDS)) / ECHO_SECONDS);
+  return ECHO_SEND_MAX * clamp01((t - (SWAP_AT - ECHO_SECONDS)) / ECHO_SECONDS);
 }
 
 /** Bass swap: lowshelf gain (dB) for the outgoing or incoming deck */

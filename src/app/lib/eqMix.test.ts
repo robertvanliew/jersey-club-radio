@@ -1,19 +1,28 @@
 import { describe, it, expect } from 'vitest';
 import {
   LEAD_IN, TOTAL, SWAP_AT, BASS_CUT_DB, RISE_HP_HZ, NEUTRAL_HP_HZ, MID_SCOOP_DB, OUT_FILTER_END_HZ, IN_HP_START_HZ, ECHO_SEND_MAX,
+  IN_HP_SWAP_HZ, TEASE_GAIN, DROP_SECONDS, ECHO_SECONDS,
   outGainAt, inGainAt, outHighpassAt, inHighpassAt, lowshelfDbAt, outMidDbAt, outEchoSendAt, sampleCurve, isQuietTail, shouldStartEarly,
 } from './eqMix';
 
-describe('volume: blend with EQ, not the fader', () => {
-  it('outgoing stays at full volume until the bass swap, then fades out', () => {
+describe('volume: echo out, drop in', () => {
+  it('outgoing stays at full volume until the swap, then drops out quickly', () => {
     expect(outGainAt(0)).toBe(1);
     expect(outGainAt(SWAP_AT - 0.01)).toBe(1);
+    expect(outGainAt(SWAP_AT + DROP_SECONDS)).toBeCloseTo(0, 5);
     expect(outGainAt(TOTAL)).toBeCloseTo(0, 5);
   });
-  it('incoming is silent in the lead-in and reaches near-full volume before the swap', () => {
+  it('incoming is silent in the lead-in, only a quiet tease before the swap, full right after', () => {
     expect(inGainAt(LEAD_IN - 0.01)).toBe(0);
-    expect(inGainAt(SWAP_AT - 0.01)).toBeGreaterThan(0.9);
+    expect(inGainAt(SWAP_AT - 0.5)).toBeGreaterThan(TEASE_GAIN * 0.8);
+    expect(inGainAt(SWAP_AT - 0.5)).toBeLessThanOrEqual(TEASE_GAIN + 1e-9);
+    expect(inGainAt(SWAP_AT + 1)).toBeCloseTo(1, 5);
     expect(inGainAt(TOTAL)).toBeCloseTo(1, 5);
+  });
+  it('the two songs are never loud together for more than a moment (unmatched beats would clash)', () => {
+    let bothLoud = 0;
+    for (let t = 0; t <= TOTAL; t += 0.05) if (outGainAt(t) > 0.5 && inGainAt(t) > 0.5) bothLoud += 0.05;
+    expect(bothLoud).toBeLessThan(1.5);
   });
   it('curves are monotonic', () => {
     for (let t = 0; t < TOTAL; t += 0.25) {
@@ -39,18 +48,18 @@ describe('outgoing filter: Rise, hold, then filter out', () => {
     expect(outMidDbAt(LEAD_IN)).toBeCloseTo(MID_SCOOP_DB, 5);
     expect(outMidDbAt(SWAP_AT)).toBeCloseTo(MID_SCOOP_DB, 5);
   });
-  it('echo tail only in the last seconds', () => {
-    expect(outEchoSendAt(SWAP_AT)).toBe(0);
+  it('echo builds into the swap so the drop-out leaves an echo tail', () => {
+    expect(outEchoSendAt(SWAP_AT - ECHO_SECONDS)).toBe(0);
+    expect(outEchoSendAt(SWAP_AT)).toBeCloseTo(ECHO_SEND_MAX, 5);
     expect(outEchoSendAt(TOTAL)).toBeCloseTo(ECHO_SEND_MAX, 5);
-    expect(outEchoSendAt(TOTAL - 1)).toBeGreaterThan(0);
   });
 });
 
-describe('incoming filter: highs first, then full range at the swap', () => {
-  it('opens downward from a highpass during the bring-in', () => {
+describe('incoming filter: highs-only tease, then full range at the swap', () => {
+  it('stays thin (no kick or bass) through the bring-in', () => {
     expect(inHighpassAt(LEAD_IN)).toBeCloseTo(IN_HP_START_HZ, 3);
     expect(inHighpassAt(LEAD_IN + 2)).toBeLessThan(IN_HP_START_HZ);
-    expect(inHighpassAt(SWAP_AT - 0.01)).toBeGreaterThan(NEUTRAL_HP_HZ);
+    expect(inHighpassAt(SWAP_AT - 0.01)).toBeGreaterThanOrEqual(IN_HP_SWAP_HZ - 1);
   });
   it('is fully open from the swap on', () => {
     expect(inHighpassAt(SWAP_AT)).toBe(NEUTRAL_HP_HZ);
