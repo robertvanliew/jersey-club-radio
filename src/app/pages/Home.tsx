@@ -8,6 +8,7 @@ import { RisingNowSection, ProducersToWatch } from '../components/RisingNow';
 import { GrowthSection } from '../components/GrowthSection';
 import { JerseyClubArticles } from '../components/JerseyClubArticles';
 import { JerseyClubExplainer } from '../components/JerseyClubExplainer';
+import { LiveStatus } from '../components/LiveStatus';
 import { Visualizer } from '../components/Visualizer';
 import { SocialWidgets } from '../components/SocialWidgets';
 import { GoldVinylRecord } from '../components/GoldVinylRecord';
@@ -156,14 +157,7 @@ function NowPlaying() {
               {/* Inner measuring container */}
               <div ref={textMeasureRef} className="inline-block whitespace-nowrap pr-2">
                 <div className="flex items-center gap-2 justify-start mb-1">
-                  <span
-                    className="w-2 h-2 rounded-full"
-                    style={{
-                      background: '#FF2222',
-                      animation: isPlaying ? 'pulse 1.1s ease-in-out infinite' : 'none',
-                    }}
-                  />
-                  <span className="text-xs font-extrabold tracking-widest" style={{ color: '#FF3333', letterSpacing: '1.2px' }}>LIVE NOW</span>
+                  <LiveStatus variant="hero" />
                   {is24k && (
                     <span
                       className="ml-1 text-[9px] font-black px-1.5 py-0.5 rounded-full"
@@ -192,14 +186,7 @@ function NowPlaying() {
           {/* MOBILE LAYOUT (Vertical Stack) */}
           <div className="md:hidden flex flex-col items-center mb-4 w-full">
             <div className="flex items-center gap-2 justify-center mb-1">
-              <span
-                className="w-2 h-2 rounded-full"
-                style={{
-                  background: '#FF2222',
-                  animation: isPlaying ? 'pulse 1.1s ease-in-out infinite' : 'none',
-                }}
-              />
-              <span className="text-xs font-extrabold tracking-widest" style={{ color: '#FF3333', letterSpacing: '1.2px' }}>LIVE NOW</span>
+              <LiveStatus variant="hero" center />
               {is24k && (
                 <span
                   className="ml-1 text-[9px] font-black px-1.5 py-0.5 rounded-full"

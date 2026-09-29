@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Visualizer } from './Visualizer';
+import { LiveStatus } from './LiveStatus';
 import { formatArtistName } from '../utils/formatArtistName';
 import { formatTrackTitle } from '../utils/formatTrackTitle';
 import { getMaxResThumbnail, handleThumbnailError } from '../utils/getMaxResThumbnail';
@@ -198,30 +199,8 @@ export function Player() {
             </div>
             <div className="min-w-0">
               {/* LIVE badge or MY PICK badge */}
-              {isPlaying && isRadioMode && (
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <span
-                    className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                    style={{ background: '#FF2D55', boxShadow: '0 0 5px #FF2D55', animation: 'pulse 1s ease-in-out infinite' }}
-                  />
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-[#FF2D55]">Live</span>
-                </div>
-              )}
-              {isPlaying && !isRadioMode && (
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <span
-                    className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                    style={{ background: '#C084FC', boxShadow: '0 0 5px #C084FC' }}
-                  />
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-[#C084FC]">My Pick</span>
-                  <button
-                    onClick={backToLive}
-                    className="text-[9px] font-bold uppercase tracking-wider ml-1 transition-colors hover:text-[#FF2D55]"
-                    style={{ color: '#5B4F70' }}
-                  >
-                    &#xb7; Back to LIVE
-                  </button>
-                </div>
+              {currentTrack && (
+                <div className="mb-0.5"><LiveStatus variant="bar" /></div>
               )}
               {!isPlaying && !currentTrack && (
                 <div className="flex items-center gap-1.5 mb-0.5">
@@ -255,12 +234,13 @@ export function Player() {
               <button onClick={toggleShuffle} className={`transition-colors ${isShuffle ? 'text-[#9D00FF]' : 'text-[#5B4F70] hover:text-white'}`} title="Shuffle">
                 <Shuffle className="w-4 h-4" />
               </button>
-              <button onClick={prevTrack} className="text-[#9B8FB0] hover:text-white transition-colors">
+              <button onClick={prevTrack} aria-label="Previous track" className="text-[#9B8FB0] hover:text-white transition-colors">
                 <SkipBack className="w-5 h-5" />
               </button>
               <button
                 onClick={togglePlay}
                 disabled={!playerReady}
+                aria-label={isPlaying ? 'Pause' : 'Play'}
                 className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${playerReady
                   ? 'bg-[#9D00FF] hover:bg-[#B030FF] shadow-[0_0_16px_rgba(157,0,255,0.5)] hover:shadow-[0_0_24px_rgba(157,0,255,0.7)] active:scale-95'
                   : 'bg-[#2a0060] cursor-not-allowed'
@@ -270,7 +250,7 @@ export function Player() {
                   : isPlaying ? <Pause className="w-4 h-4 text-white" />
                     : <Play className="w-4 h-4 text-white ml-0.5" />}
               </button>
-              <button onClick={nextTrack} className="text-[#9B8FB0] hover:text-white transition-colors">
+              <button onClick={nextTrack} aria-label="Next track" className="text-[#9B8FB0] hover:text-white transition-colors">
                 <SkipForward className="w-5 h-5" />
               </button>
               <button onClick={toggleRepeat} className={`transition-colors ${isRepeat ? 'text-[#9D00FF]' : 'text-[#5B4F70] hover:text-white'}`} title="Repeat">
@@ -382,31 +362,7 @@ export function Player() {
           {/* Title + artist + LIVE / MY PICK badge */}
           <div className="flex-1 min-w-0">
             {currentTrack && (
-              <div className="flex items-center gap-1.5 mb-0.5">
-                {isRadioMode ? (
-                  <>
-                    <span
-                      className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                      style={{ background: '#FF2D55', boxShadow: '0 0 5px #FF2D55', animation: 'pulse 1s ease-in-out infinite' }}
-                    />
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-[#FF2D55]">Live</span>
-                  </>
-                ) : (
-                  <>
-                    <span
-                      className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                      style={{ background: '#C084FC', boxShadow: '0 0 5px #C084FC' }}
-                    />
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-[#C084FC]">My Pick</span>
-                    <button
-                      onClick={backToLive}
-                      className="text-[9px] font-bold uppercase tracking-wider ml-1 text-[#5B4F70] transition-colors"
-                    >
-                      · Back to Live
-                    </button>
-                  </>
-                )}
-              </div>
+              <div className="mb-0.5"><LiveStatus variant="bar" /></div>
             )}
             <p className="font-bold text-white truncate" style={{ fontSize: 13, lineHeight: '18px' }}>
               {currentTrack

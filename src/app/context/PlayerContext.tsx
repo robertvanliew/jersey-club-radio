@@ -275,7 +275,26 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   // Songs this listener recently finished (persisted), so the next pick never repeats one.
   // Capped at half the playlist so a short list never runs out of choices.
   const recentRef = useRef<RecentPlays>(loadRecent());
+  // Latest station clock (radio mode polls it), so live listeners who drift rejoin the station's song
+  const stationRef = useRef<{ videoId: string; startedAt: number; durationSec: number } | null>(null);
   const avoidIds = (playlistLength: number) => recentIds(recentRef.current, Math.min(RECENT_MAX, Math.floor(playlistLength / 2)));
+  /**
+   * If this live listener is on a different song than the station, the station's song and the
+   * point to start it at (it begins playing LEAD_IN seconds from now). Null when in step, when
+   * the station is behind this listener (its song was just heard), or when its song is nearly over.
+   */
+  const stationJoinTarget = (playlist: Track[]): { index: number; offset: number } | null => {
+    const s = stationRef.current;
+    if (!s?.videoId || s.videoId === currentTrackRef.current?.id.videoId) return null;
+    if (avoidIds(playlist.length).has(s.videoId) || unplayableRef.current.has(s.videoId)) return null;
+    const index = playlist.findIndex(t => t.id.videoId === s.videoId);
+    if (index < 0) return null;
+    const offset = Math.max(0, (Date.now() - s.startedAt) / 1000 + LEAD_IN);
+    // Unknown length: only join early in the song, so the start point can't be past its end
+    const maxOffset = s.durationSec > 0 ? s.durationSec - CROSSFADE_TOTAL - 20 : 60;
+    if (offset > maxOffset) return null;
+    return { index, offset };
+  };
   // EQ Mix per-deck FX (native decks): highpass (Rise) → lowshelf (bass swap) → analyser (level)
   const deckFxRef = useRef<Partial<Record<DeckId, { hp: BiquadFilterNode; ls: BiquadFilterNode; mid: BiquadFilterNode; echo: GainNode; an: AnalyserNode }>>>({});
   // Which decks' gain/FX are currently driven by audio-clock automation (not the timer)
@@ -711,10 +730,17 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     // ── Report to server if in radio mode (global station clock) ──────────
     if (radioModeRef.current && currentTrackRef.current) {
       const vid = currentTrackRef.current.id.videoId;
+      // When the song really started (it has been playing since the middle of the mix, and
+      // may have been joined part-way through), so everyone else lines up with this listener
+      const audio = incoming === 'A' ? scAudioA.current : scAudioB.current;
+      const pos = isNativeDeck(incoming) && audio ? audio.currentTime : 0;
+      const startedAt = Date.now() - Math.round(pos * 1000);
+      const dur = audio && isFinite(audio.duration) ? audio.duration : 0;
+      stationRef.current = { videoId: vid, startedAt, durationSec: dur };
       fetch(`${BASE}/radio/advance`, {
         method: 'POST',
         headers: { ...HEADERS, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ videoId: vid, startedAt: Date.now(), durationSec: 0 }),
+        body: JSON.stringify({ videoId: vid, startedAt, durationSec: dur }),
       }).catch(() => { });
     }
 
@@ -730,7 +756,16 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     const playlist = playlistRef.current;
     if (!playlist.length || isCrossfadingRef.current) return;
 
-    const nextIdx = calcNextIndex();
+    let nextIdx = calcNextIndex();
+    // Live listeners who drifted from the station mix into the station's song, at the point
+    // the station is at, so everyone hears the same song (no jump mid-song: it happens here)
+    let startAt = 0;
+    const join = radioModeRef.current ? stationJoinTarget(playlist) : null;
+    if (join) {
+      nextIdx = join.index;
+      startAt = join.offset;
+      console.log(`[Radio] Rejoining the station: "${playlist[nextIdx].snippet.title}" at ${startAt.toFixed(0)}s`);
+    }
     const nextTrack = playlist[nextIdx];
     if (!nextTrack) return;
 
@@ -752,6 +787,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
     // Pre-load (CUE) the incoming track without playing — it'll start in Phase 2
     loadOnDeck(incoming, nextTrack, false, 0);
+    if (startAt > 0) seekDeck(incoming, startAt);
 
     // EQ Mix: native decks get gain + Rise + bass swap on the audio clock
     scheduleEqMix(active, incoming, 0);
@@ -804,7 +840,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         finishCrossfade();
       }
     }, CROSSFADE_TICK);
-  }, [calcNextIndex, loadOnDeck, playDeck, setDeckVolume, scheduleEqMix, finishCrossfade]);
+  }, [calcNextIndex, loadOnDeck, seekDeck, playDeck, setDeckVolume, scheduleEqMix, finishCrossfade]);
 
   // ─── Hard advance (no crossfade — fallback for short tracks / errors) ──
   const hardAdvance = useCallback(() => {
@@ -1682,14 +1718,22 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     setIsRadioMode(true);
     radioModeRef.current = true;
 
-    // Seek to correct position after player has time to buffer
+    // Start at the station's position. Native decks apply it as soon as the stream's metadata
+    // loads, before any audio plays (no audible jump); embeds need time to buffer first.
     if (seekSec > 2) {
-      setTimeout(() => {
-        // Only if we're still on this track (it may have been skipped as unplayable)
-        if (currentTrackRef.current?.id.videoId !== track.id.videoId) return;
-        seekDeck(activeDeckRef.current, seekSec);
+      if (isNativeDeck(active)) {
+        seekDeck(active, seekSec);
         setProgress(seekSec);
-      }, 2000);
+      } else {
+        const t0 = Date.now();
+        setTimeout(() => {
+          // Only if we're still on this track (it may have been skipped as unplayable)
+          if (currentTrackRef.current?.id.videoId !== track.id.videoId) return;
+          const at = seekSec + (Date.now() - t0) / 1000;
+          seekDeck(activeDeckRef.current, at);
+          setProgress(at);
+        }, 2000);
+      }
     }
   }, [cancelCrossfade, loadOnDeck, seekDeck, stopDeck, location.pathname]);
 
@@ -1721,13 +1765,6 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
             const nextIdx = pickNextIndex(tracks.map(t => t.id.videoId), idx, {
               avoid: avoidIds(tracks.length), playable: i => !unplayableRef.current.has(tracks[i].id.videoId),
             });
-
-            // This listener just finished the station's song (e.g. they refreshed): don't replay it
-            if (avoidIds(tracks.length).has(state.videoId)) {
-              console.log(`[Radio] Already heard "${tracks[idx].snippet.title}", starting: "${tracks[nextIdx].snippet.title}"`);
-              startTrackInRadioMode(tracks[nextIdx], nextIdx, 0);
-              return;
-            }
 
             // If track is still playing (or we don't know its duration)
             if (dur <= 0 || elapsed < dur) {
@@ -1765,6 +1802,18 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       }
     })();
   }, [playerReady, tracks, startTrackInRadioMode]);
+
+  // ── Live listeners: keep the station clock fresh (used at the next song change) ──
+  useEffect(() => {
+    if (!isRadioMode) return;
+    const poll = () => fetch(`${BASE}/radio/now-playing`, { headers: HEADERS })
+      .then(r => r.json())
+      .then(({ state }) => { if (state?.videoId && state.startedAt) stationRef.current = state; })
+      .catch(() => { });
+    poll();
+    const id = setInterval(poll, 30_000);
+    return () => clearInterval(id);
+  }, [isRadioMode]);
 
   // ── Duration reporting: once per track, tell the server how long it is ────
   useEffect(() => {
@@ -1877,12 +1926,6 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
           const nextIdx = pickNextIndex(playlist.map(t => t.id.videoId), idx, {
             avoid: avoidIds(playlist.length), playable: i => !unplayableRef.current.has(playlist[i].id.videoId),
           });
-
-          // Just heard the station's song: don't replay it, and don't move the station for everyone
-          if (avoidIds(playlist.length).has(state.videoId)) {
-            startTrackInRadioMode(playlist[nextIdx], nextIdx, 0);
-            return;
-          }
 
           if (dur <= 0 || elapsed < dur) {
             console.log(`[Radio] Back to LIVE: "${playlist[idx].snippet.title}" at ${elapsed.toFixed(1)}s`);
