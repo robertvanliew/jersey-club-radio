@@ -17,6 +17,7 @@ import {
 } from '../src/data/charts/chartUtils.mjs';
 import { publishedArticles, inlineSegments, articleJsonLd, shareLinks } from '../src/data/news/newsUtils.mjs';
 import { ROUTE_SEO, artistSeo } from '../src/data/seo/routes.mjs';
+import { HOME_EXPLAINER } from '../src/data/seo/home.mjs';
 
 const DIST = 'dist';
 const CHART_DIR = 'src/data/charts';
@@ -180,6 +181,7 @@ for (const [path, seo] of Object.entries(ROUTE_SEO)) {
 
 // ── Artist profiles (fetched from the live API at build time; skipped if unreachable) ──
 let artistsBuilt = 0;
+const artistList = [];
 try {
   const info = readFileSync('utils/supabase/info.tsx', 'utf8');
   const projectId = info.match(/projectId\s*=\s*"([^"]+)"/)[1];
@@ -197,10 +199,58 @@ try {
     });
     urls.push({ path, lastmod: (a.updatedAt || today).slice(0, 10), changefreq: 'monthly' });
     artistsBuilt++;
+    artistList.push({ path, name: a.name, role: a.role });
   }
 } catch (e) {
   console.warn(`[prerender] artist pages skipped: ${e.message}`);
 }
+
+// ── Homepage: crawler-readable body (genre explainer, this week's chart, stories, artists) ──
+// AI crawlers don't run JavaScript, so without this the homepage is an empty #root to them.
+const latestChart = latest ? byWeek.get(latest) : null;
+const e = HOME_EXPLAINER;
+const homeBody = `<h1>Jersey Club Radio: 24/7 Jersey Club Music</h1>
+<p>${esc(ROUTE_SEO['/'].intro)}</p>${SECTION_LINKS}
+<h2>${esc(e.heading)}</h2><p>${esc(e.definition)}</p>
+<ul>${e.facts.map(([k, v]) => `<li><strong>${esc(k)}:</strong> ${esc(v)}</li>`).join('')}</ul>
+${latestChart ? `<h2>This week's Rising Now chart</h2><p>Week of ${formatWeek(latestChart.week)}.</p><ol>${latestChart.entries.slice(0, 10).map(x => `<li>${esc(x.title)} by ${esc(x.artist)} (prod. <a href="/producers/${producerSlug(x.producer)}">${esc(x.producer)}</a>)</li>`).join('')}</ol><p><a href="/hot">See the full chart</a></p>` : ''}
+${news.length ? `<h2>Jersey club stories</h2><ul>${news.map(a => `<li><a href="/news/${esc(a.slug)}">${esc(a.title)}</a></li>`).join('')}</ul>` : ''}
+${artistList.length ? `<h2>Jersey club artists</h2><ul>${artistList.map(a => `<li><a href="${a.path}">${esc(a.name)}</a>${a.role ? `, ${esc(a.role)}` : ''}</li>`).join('')}</ul>` : ''}
+<h2>Jersey club questions</h2>${e.faq.map(f => `<h3>${esc(f.q)}</h3><p>${esc(f.a)}</p>`).join('')}
+<p><a href="https://www.instagram.com/jerseyclubradio/">Instagram</a> · <a href="https://x.com/jerseyclubradio">X</a> · <a href="https://www.youtube.com/@Jerseyclubradio">YouTube</a> · <a href="https://www.tiktok.com/@jerseyclubradio">TikTok</a></p>`;
+writeFileSync(join(DIST, 'index.html'), template
+  .replace(/<noscript>[\s\S]*?<\/noscript>\s*/, '')
+  .replace('</head>', `${STYLE}\n</head>`)
+  .replace('<div id="root"></div>', `<div id="root"><main class="jc-static">${homeBody}</main></div>`));
+
+// ── llms.txt: a plain map of the site for AI assistants ──
+const md = s => String(s).replace(/\s+/g, ' ').trim();
+writeFileSync(join(DIST, 'llms.txt'), `# Jersey Club Radio
+
+> ${md(ROUTE_SEO['/'].description)} Free, no account needed, at ${SITE_URL}.
+
+${md(e.definition)}
+
+## Key pages
+- [Listen live](${SITE_URL}/): The 24/7 Jersey club radio stream
+- [Rising Now chart](${SITE_URL}/hot): The fastest-rising new Jersey club tracks, updated every Monday
+- [Chart archive](${SITE_URL}/hot/archive): Every past week of the Rising Now chart
+- [Stories](${SITE_URL}/news): Features on Jersey club history, artists and dance culture
+- [Artists](${SITE_URL}/artists): Profiles of Jersey club DJs and producers
+- [New releases](${SITE_URL}/new-releases): The latest Jersey club songs and remixes
+- [Dance videos](${SITE_URL}/dance-videos): The newest Jersey club dance shorts
+- [About](${SITE_URL}/about): Who runs Jersey Club Radio
+- [Contact](${SITE_URL}/contact): Advertising, bookings and press
+
+## Stories
+${news.map(a => `- [${md(a.title)}](${SITE_URL}/news/${a.slug})${a.description ? `: ${md(a.description)}` : ''}`).join('\n')}
+${artistList.length ? `\n## Artists\n${artistList.map(a => `- [${md(a.name)}](${SITE_URL}${a.path})${a.role ? `: ${md(a.role)}` : ''}`).join('\n')}\n` : ''}${latestChart ? `\n## This week's chart (week of ${formatWeek(latestChart.week)})\n${latestChart.entries.slice(0, 10).map(x => `${x.rank}. ${md(x.title)} by ${md(x.artist)}, prod. ${md(x.producer)}`).join('\n')}\n` : ''}
+## Jersey club FAQ
+${e.faq.map(f => `### ${f.q}\n${f.a}`).join('\n\n')}
+
+## Contact
+info@jerseyclubradio.com
+`);
 
 // ── Sitemap: every indexable page (home + routes + chart + news + producers + artists) ──
 const entry = u => `  <url>\n    <loc>${SITE_URL}${u.path}</loc>\n    <lastmod>${u.lastmod}</lastmod>\n    <changefreq>${u.changefreq || (u.path.startsWith('/hot') && !/\d/.test(u.path) ? 'weekly' : 'monthly')}</changefreq>\n  </url>`;

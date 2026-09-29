@@ -7,6 +7,7 @@ import { MostPlayed } from '../components/MostPlayed';
 import { RisingNowSection, ProducersToWatch } from '../components/RisingNow';
 import { GrowthSection } from '../components/GrowthSection';
 import { JerseyClubArticles } from '../components/JerseyClubArticles';
+import { JerseyClubExplainer } from '../components/JerseyClubExplainer';
 import { Visualizer } from '../components/Visualizer';
 import { SocialWidgets } from '../components/SocialWidgets';
 import { GoldVinylRecord } from '../components/GoldVinylRecord';
@@ -617,6 +618,9 @@ export function Home() {
 
       {/* Reach stats, track submissions, weekly chart signup */}
       <GrowthSection />
+
+      {/* What is Jersey club: the genre explainer search engines and AI answers quote */}
+      <JerseyClubExplainer />
     </div>
   );
 }
