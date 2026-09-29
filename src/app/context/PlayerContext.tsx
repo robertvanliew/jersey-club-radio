@@ -13,6 +13,27 @@ import {
   outGainAt, inGainAt, outHighpassAt, inHighpassAt, outMidDbAt, outEchoSendAt, lowshelfDbAt, sampleCurve,
   isQuietTail, shouldStartEarly,
 } from '../lib/eqMix';
+import { addRecent, recentIds, parseRecent, pickNextIndex, RECENT_MAX, type RecentPlays } from '../lib/recentPlays';
+
+const RECENT_KEY = 'jcr-recent-plays';
+const loadRecent = (): RecentPlays => { try { return parseRecent(localStorage.getItem(RECENT_KEY)); } catch { return []; } };
+const saveRecent = (list: RecentPlays) => { try { localStorage.setItem(RECENT_KEY, JSON.stringify(list)); } catch { } };
+
+/** A tenth of a second of silence, used to unlock an idle <audio> element on mobile Safari */
+let silentUrl = '';
+function silentWavUrl() {
+  if (silentUrl) return silentUrl;
+  const n = 800; // 0.1 s, 8 kHz, 8-bit mono
+  const buf = new ArrayBuffer(44 + n);
+  const v = new DataView(buf);
+  const str = (o: number, s: string) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  str(0, 'RIFF'); v.setUint32(4, 36 + n, true); str(8, 'WAVE'); str(12, 'fmt ');
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, 8000, true); v.setUint32(28, 8000, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true);
+  str(36, 'data'); v.setUint32(40, n, true);
+  new Uint8Array(buf, 44).fill(128);
+  return (silentUrl = URL.createObjectURL(new Blob([buf], { type: 'audio/wav' })));
+}
 
 declare global {
   interface Window {
@@ -242,6 +263,19 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   // Tracks SoundCloud won't stream outside soundcloud.com (label-restricted); skipped in rotation
   const unplayableRef = useRef<Set<string>>(new Set());
   const onUnplayableRef = useRef<(deck: DeckId, track: Track) => void>(() => { });
+  // Mobile Safari only lets an <audio> element play once a tap has started it ("unlocked").
+  // A deck counts as unlocked after it has played anything. Idle decks are unlocked on the
+  // visitor's taps; if a deck is still blocked when a mix reaches it, the song moves to the
+  // deck that can play (see onPlayBlockedRef) instead of leaving the station silent.
+  const deckUnlockedRef = useRef<Record<DeckId, boolean>>({ A: false, B: false });
+  const onPlayBlockedRef = useRef<(deck: DeckId) => void>(() => { });
+  const mixBlockedRef = useRef(false);
+  // The track a mix started from, to restore the UI if the mix is called off late
+  const mixFromRef = useRef<{ track: Track; index: number } | null>(null);
+  // Songs this listener recently finished (persisted), so the next pick never repeats one.
+  // Capped at half the playlist so a short list never runs out of choices.
+  const recentRef = useRef<RecentPlays>(loadRecent());
+  const avoidIds = (playlistLength: number) => recentIds(recentRef.current, Math.min(RECENT_MAX, Math.floor(playlistLength / 2)));
   // EQ Mix per-deck FX (native decks): highpass (Rise) → lowshelf (bass swap) → analyser (level)
   const deckFxRef = useRef<Partial<Record<DeckId, { hp: BiquadFilterNode; ls: BiquadFilterNode; mid: BiquadFilterNode; echo: GainNode; an: AnalyserNode }>>>({});
   // Which decks' gain/FX are currently driven by audio-clock automation (not the timer)
@@ -287,6 +321,14 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => { isRepeatRef.current = isRepeat; }, [isRepeat]);
   useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
   useEffect(() => { currentTrackRef.current = currentTrack; }, [currentTrack]);
+  // When the song changes, the one before it counts as just played
+  const prevTrackIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    const id = currentTrack?.id.videoId ?? null;
+    const prev = prevTrackIdRef.current;
+    if (prev && prev !== id) { recentRef.current = addRecent(recentRef.current, prev); saveRecent(recentRef.current); }
+    prevTrackIdRef.current = id;
+  }, [currentTrack?.id.videoId]);
   useEffect(() => { durationRef.current = duration; }, [duration]);
 
   // ── Progress ref — lets prevTrack read current position without being in
@@ -308,6 +350,12 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     // The SC API uses postMessage internally — if contentWindow is null, it crashes
     if (!iframe || !iframe.contentWindow) return null;
     return widget;
+  };
+
+  /** A native deck's play() was rejected. NotAllowedError = the browser blocked it (no tap yet) */
+  const onNativePlayError = (deck: DeckId, e: unknown) => {
+    if ((e as DOMException)?.name === 'NotAllowedError') onPlayBlockedRef.current(deck);
+    else console.warn('[SC Native] play error:', e);
   };
 
   /** Cancel any EQ Mix automation on a deck and return its filters to neutral */
@@ -429,7 +477,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     const mode = deck === 'A' ? deckModeA.current : deckModeB.current;
     if (mode === 'native') {
       if (audioCtxRef.current?.state === 'suspended') audioCtxRef.current.resume();
-      (deck === 'A' ? scAudioA : scAudioB).current?.play().catch(e => console.warn('[SC Native] play error:', e));
+      (deck === 'A' ? scAudioA : scAudioB).current?.play().catch(e => onNativePlayError(deck, e));
     } else {
       try { getSafeSc(deck)?.play(); } catch { }
     }
@@ -528,7 +576,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
             if (deckWantsPlayRef.current[deck]) {
               // Resume AudioContext — required after any user-gesture gap
               if (audioCtxRef.current?.state === 'suspended') audioCtxRef.current.resume();
-              audio.play().catch(e => console.warn('[SC Native] play error:', e));
+              audio.play().catch(e => onNativePlayError(deck, e));
               if (autoPlay) gain.gain.value = vol / 100;
             }
           })
@@ -608,16 +656,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     if (!playlist.length) return 0;
     const playable = (i: number) => !unplayableRef.current.has(playlist[i]?.id.videoId);
     if (isRepeatRef.current && playable(currentIndexRef.current)) return currentIndexRef.current;
-    if (isShuffleRef.current) {
-      const options = playlist.map((_, i) => i).filter(playable);
-      if (options.length) return options[Math.floor(Math.random() * options.length)];
-    }
-    // Next track in order, skipping ones known to be unplayable (SoundCloud-only)
-    for (let step = 1; step <= playlist.length; step++) {
-      const i = (currentIndexRef.current + step) % playlist.length;
-      if (playable(i)) return i;
-    }
-    return (currentIndexRef.current + 1) % playlist.length;
+    // Next in order (or random on shuffle), never the current song or one that just played,
+    // and skipping ones known to be unplayable (SoundCloud-only)
+    return pickNextIndex(playlist.map(t => t.id.videoId), currentIndexRef.current, {
+      playable, shuffle: isShuffleRef.current, avoid: avoidIds(playlist.length),
+    });
   }, []);
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -699,6 +742,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     incomingStartedRef.current = false;
     uiSwitchedRef.current = false;
     pendingTrackRef.current = { track: nextTrack, index: nextIdx };
+    mixFromRef.current = currentTrackRef.current ? { track: currentTrackRef.current, index: currentIndexRef.current } : null;
 
     console.log(`[DJ] Starting ${CROSSFADE_TOTAL}s two-phase crossfade: Deck ${active} → Deck ${incoming} | "${nextTrack.snippet.title}"`);
     console.log(`[DJ]   Phase 1: ${LEAD_IN}s solo fade-out → Phase 2: ${OVERLAP}s overlap blend → UI switch at ${UI_SWITCH_POINT}s`);
@@ -816,7 +860,35 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         hardAdvanceRef.current();
       }
     };
-  }, [cancelCrossfade]);
+
+    // The browser refused to start a deck (mobile Safari: that <audio> element was never
+    // tapped). Keep the music going on the deck that can play.
+    onPlayBlockedRef.current = (deck: DeckId) => {
+      const other = otherDeck(deck);
+      if (isCrossfadingRef.current && incomingDeckRef.current === deck) {
+        // Call the mix off: the current song plays out and the next one starts on this
+        // same (unlocked) deck when it ends. If the UI already switched, switch it back.
+        console.warn(`[DJ] Deck ${deck} is blocked by the browser; finishing the current song instead of mixing`);
+        mixBlockedRef.current = true;
+        const from = mixFromRef.current;
+        cancelCrossfade();
+        if (uiSwitchedRef.current && from) {
+          currentIndexRef.current = from.index;
+          setCurrentTrack(from.track);
+          setCurrentIndex(from.index);
+        }
+      } else if (activeDeckRef.current === deck && deckUnlockedRef.current[other] && currentTrackRef.current) {
+        // The live deck is blocked (its load landed after the mix ended): play the song on the other deck
+        console.warn(`[DJ] Deck ${deck} is blocked by the browser; moving "${currentTrackRef.current.snippet.title}" to Deck ${other}`);
+        mixBlockedRef.current = true;
+        stopDeck(deck);
+        activeDeckRef.current = other;
+        loadOnDeck(other, currentTrackRef.current, true, masterVolumeRef.current);
+      } else {
+        console.warn(`[SC Native] Deck ${deck} is blocked by the browser until the visitor taps play`);
+      }
+    };
+  }, [cancelCrossfade, stopDeck, loadOnDeck]);
   const startCrossfadeRef = useRef(startCrossfade);
   useEffect(() => { startCrossfadeRef.current = startCrossfade; }, [startCrossfade]);
 
@@ -1030,6 +1102,10 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         const isIncoming = isCrossfadingRef.current && incomingDeckRef.current === deck;
         if (isActive || isIncoming) { setIsPlaying(true); isPlayingRef.current = true; }
       });
+      audio.addEventListener('playing', () => {
+        if (!deckUnlockedRef.current[deck]) console.log(`[SC Native] Deck ${deck} unlocked`);
+        deckUnlockedRef.current[deck] = true;
+      });
       audio.addEventListener('pause', () => {
         if (destroyed) return;
         if (activeDeckRef.current === deck && !isCrossfadingRef.current) {
@@ -1063,6 +1139,29 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       destroyed = true;
       audioCtx.close().catch(() => { });
     };
+  }, []);
+
+  // ── Unlock idle decks on taps: mobile Safari needs a gesture per <audio> element, and
+  //    a mix starts the other deck with no tap, so it must be unlocked ahead of time ──
+  useEffect(() => {
+    const events = ['touchend', 'click', 'keydown'] as const;
+    const unlock = () => {
+      for (const deck of ['A', 'B'] as const) {
+        const audio = deck === 'A' ? scAudioA.current : scAudioB.current;
+        if (!audio || deckUnlockedRef.current[deck]) continue;
+        // Leave the live deck and any deck that is meant to be playing alone
+        if (deck === activeDeckRef.current || deckWantsPlayRef.current[deck] || !audio.paused) continue;
+        // Idle decks sit at zero gain, so this is inaudible
+        if (!audio.src) audio.src = silentWavUrl();
+        audio.play().then(() => {
+          deckUnlockedRef.current[deck] = true;
+          if (!deckWantsPlayRef.current[deck]) audio.pause();
+        }).catch(() => { });
+      }
+      if (deckUnlockedRef.current.A && deckUnlockedRef.current.B) events.forEach(e => window.removeEventListener(e, unlock, true));
+    };
+    events.forEach(e => window.addEventListener(e, unlock, true));
+    return () => events.forEach(e => window.removeEventListener(e, unlock, true));
   }, []);
 
   // ── SC Widget fallback (stream URL resolution failed) — loaded on first interaction ──
@@ -1235,7 +1334,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       }
 
       // ── Crossfade trigger check (only when NOT already crossfading) ──────
-      if (!isCrossfadingRef.current) {
+      // After a blocked deck, songs change on the live deck (via 'ended') until a tap unlocks the other one
+      const mixAllowed = !mixBlockedRef.current || deckUnlockedRef.current[otherDeck(active)];
+      if (!isCrossfadingRef.current && mixAllowed) {
         let activeProg = 0;
         let activeDur = 0;
 
@@ -1617,6 +1718,16 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
           if (idx >= 0) {
             const elapsed = (Date.now() - state.startedAt) / 1000;
             const dur = state.durationSec || 0;
+            const nextIdx = pickNextIndex(tracks.map(t => t.id.videoId), idx, {
+              avoid: avoidIds(tracks.length), playable: i => !unplayableRef.current.has(tracks[i].id.videoId),
+            });
+
+            // This listener just finished the station's song (e.g. they refreshed): don't replay it
+            if (avoidIds(tracks.length).has(state.videoId)) {
+              console.log(`[Radio] Already heard "${tracks[idx].snippet.title}", starting: "${tracks[nextIdx].snippet.title}"`);
+              startTrackInRadioMode(tracks[nextIdx], nextIdx, 0);
+              return;
+            }
 
             // If track is still playing (or we don't know its duration)
             if (dur <= 0 || elapsed < dur) {
@@ -1625,8 +1736,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
               return;
             }
 
-            // Track is over — play the next sequential track
-            const nextIdx = (idx + 1) % tracks.length;
+            // Track is over — play the next track
             console.log(`[Radio] Station track ended, advancing to: "${tracks[nextIdx].snippet.title}"`);
             startTrackInRadioMode(tracks[nextIdx], nextIdx, 0);
 
@@ -1764,6 +1874,15 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         if (idx >= 0) {
           const elapsed = (Date.now() - state.startedAt) / 1000;
           const dur = state.durationSec || 0;
+          const nextIdx = pickNextIndex(playlist.map(t => t.id.videoId), idx, {
+            avoid: avoidIds(playlist.length), playable: i => !unplayableRef.current.has(playlist[i].id.videoId),
+          });
+
+          // Just heard the station's song: don't replay it, and don't move the station for everyone
+          if (avoidIds(playlist.length).has(state.videoId)) {
+            startTrackInRadioMode(playlist[nextIdx], nextIdx, 0);
+            return;
+          }
 
           if (dur <= 0 || elapsed < dur) {
             console.log(`[Radio] Back to LIVE: "${playlist[idx].snippet.title}" at ${elapsed.toFixed(1)}s`);
@@ -1772,7 +1891,6 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
           }
 
           // Track ended — play next
-          const nextIdx = (idx + 1) % playlist.length;
           startTrackInRadioMode(playlist[nextIdx], nextIdx, 0);
           fetch(`${BASE}/radio/advance`, {
             method: 'POST',
