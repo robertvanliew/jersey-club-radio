@@ -16,6 +16,7 @@ import {
   validateChart, chartJsonLd, producerJsonLd,
 } from '../src/data/charts/chartUtils.mjs';
 import { publishedArticles, inlineSegments, articleJsonLd, shareLinks } from '../src/data/news/newsUtils.mjs';
+import { ROUTE_SEO, artistSeo } from '../src/data/seo/routes.mjs';
 
 const DIST = 'dist';
 const CHART_DIR = 'src/data/charts';
@@ -65,12 +66,13 @@ const STYLE = `<style>.jc-static{max-width:760px;margin:0 auto;padding:24px 16px
 const template = readFileSync(join(DIST, 'index.html'), 'utf8');
 
 /** Fill the SPA shell with a page's head tags and static body */
-function page({ path, title, description, jsonLd, body }) {
+function page({ path, title, description, jsonLd, body, noindex = false }) {
   const url = SITE_URL + path;
   let html = template
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(title)}</title>`)
     .replace(/(<meta name="description" content=")[^"]*(")/, `$1${esc(description)}$2`)
     .replace(/(<link rel="canonical" href=")[^"]*(")/, `$1${url}$2`)
+    .replace(/(<meta name="robots" content=")[^"]*(")/, noindex ? '$1noindex, follow$2' : '$&')
     .replace(/(<meta property="og:url" content=")[^"]*(")/, `$1${url}$2`)
     .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${esc(title)}$2`)
     .replace(/(<meta property="og:description" content=")[^"]*(")/, `$1${esc(description)}$2`)
@@ -80,7 +82,7 @@ function page({ path, title, description, jsonLd, body }) {
     .replace(/<script type="application\/ld\+json">(?:(?!<\/script>)[\s\S])*"FAQPage"[\s\S]*?<\/script>\s*/, '')
     .replace(/<!--[^>]*FAQPage[^>]*-->\s*/, '')
     .replace(/<noscript>[\s\S]*?<\/noscript>\s*/, '')
-    .replace('</head>', `<script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>\n${STYLE}\n</head>`)
+    .replace('</head>', `${jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>\n` : ''}${STYLE}\n</head>`)
     .replace('<div id="root"></div>', `<div id="root"><main class="jc-static">${body}</main></div>`);
   const out = join(DIST, path, 'index.html');
   mkdirSync(join(DIST, path), { recursive: true });
@@ -163,9 +165,47 @@ if (news.length) {
   }), lastmod: news[0].date });
 }
 
-// ── Sitemap: static pages from public/sitemap.xml + chart pages ──────────────
-const staticSitemap = readFileSync('public/sitemap.xml', 'utf8');
-const extra = urls.map(u => `  <url>\n    <loc>${SITE_URL}${u.path}</loc>\n    <lastmod>${u.lastmod}</lastmod>\n    <changefreq>${u.path.startsWith('/hot') && !/\d/.test(u.path) ? 'weekly' : 'monthly'}</changefreq>\n  </url>`).join('\n');
-writeFileSync(join(DIST, 'sitemap.xml'), staticSitemap.replace('</urlset>', `${extra ? extra + '\n' : ''}</urlset>`));
+// ── Static app routes: each gets its own title, description, canonical and intro ──
+const today = new Date().toISOString().slice(0, 10);
+const SECTION_LINKS = `<nav class="jc-nav" style="flex-wrap:wrap"><a href="/">Listen live</a><a href="/hot">Rising Now chart</a><a href="/news">Stories</a><a href="/artists">Artists</a><a href="/new-releases">New releases</a><a href="/dance-videos">Dance videos</a><a href="/games">Games</a><a href="/about">About</a><a href="/contact">Contact</a></nav>`;
+for (const [path, seo] of Object.entries(ROUTE_SEO)) {
+  if (path === '/') continue; // the root index.html keeps its own tags, FAQ and fallback
+  page({
+    path, title: seo.title, description: seo.description, noindex: !!seo.noindex,
+    jsonLd: seo.noindex ? null : { '@context': 'https://schema.org', '@type': 'WebPage', name: seo.title, description: seo.description, url: SITE_URL + path, isPartOf: { '@type': 'WebSite', name: 'Jersey Club Radio', url: SITE_URL } },
+    body: `<h1>${esc(seo.title.split(' | ')[0])}</h1><p>${esc(seo.intro || seo.description)}</p>${SECTION_LINKS}`,
+  });
+  if (!seo.noindex) urls.push({ path, lastmod: today, changefreq: path === '/new-releases' || path === '/dance-videos' ? 'daily' : 'monthly' });
+}
+
+// ── Artist profiles (fetched from the live API at build time; skipped if unreachable) ──
+let artistsBuilt = 0;
+try {
+  const info = readFileSync('utils/supabase/info.tsx', 'utf8');
+  const projectId = info.match(/projectId\s*=\s*"([^"]+)"/)[1];
+  const anon = info.match(/publicAnonKey\s*=\s*"([^"]+)"/)[1];
+  const res = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-715f71b9/artists`, { headers: { Authorization: `Bearer ${anon}` }, signal: AbortSignal.timeout(15000) });
+  const artists = res.ok ? await res.json() : [];
+  for (const a of (Array.isArray(artists) ? artists : []).filter(x => x.slug && x.name && x.visible !== false)) {
+    const seo = artistSeo(a);
+    const socials = Object.values(a.socials || {}).filter(v => typeof v === 'string' && /^https?:\/\//.test(v));
+    const path = `/artists/${a.slug}`;
+    page({
+      path, title: seo.title, description: seo.description,
+      jsonLd: { '@context': 'https://schema.org', '@type': 'Person', name: a.name, jobTitle: a.role, description: String(a.bio || '').slice(0, 500), url: SITE_URL + path, ...(a.photoUrl ? { image: a.photoUrl } : {}), ...(socials.length ? { sameAs: socials } : {}), genre: 'Jersey club' },
+      body: `<h1>${esc(a.name)}</h1><p><strong>${esc(a.role || 'Jersey club artist')}</strong></p>${a.photoUrl ? `<img src="${esc(a.photoUrl)}" alt="${esc(a.name)}" width="240" style="border-radius:12px">` : ''}${String(a.bio || '').split(/\n+/).filter(Boolean).map(p => `<p>${esc(p)}</p>`).join('')}${socials.length ? `<p>${socials.map(s => `<a href="${esc(s)}" rel="noopener">${esc(new URL(s).hostname.replace('www.', ''))}</a>`).join(' · ')}</p>` : ''}<p><a href="/artists">All Jersey club artists</a> · <a href="/">Listen to Jersey Club Radio</a></p>`,
+    });
+    urls.push({ path, lastmod: (a.updatedAt || today).slice(0, 10), changefreq: 'monthly' });
+    artistsBuilt++;
+  }
+} catch (e) {
+  console.warn(`[prerender] artist pages skipped: ${e.message}`);
+}
+
+// ── Sitemap: every indexable page (home + routes + chart + news + producers + artists) ──
+const entry = u => `  <url>\n    <loc>${SITE_URL}${u.path}</loc>\n    <lastmod>${u.lastmod}</lastmod>\n    <changefreq>${u.changefreq || (u.path.startsWith('/hot') && !/\d/.test(u.path) ? 'weekly' : 'monthly')}</changefreq>\n  </url>`;
+const all = [{ path: '/', lastmod: today, changefreq: 'daily' }, ...urls.filter((u, i, arr) => arr.findIndex(x => x.path === u.path) === i)];
+writeFileSync(join(DIST, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${all.map(entry).join('\n')}\n</urlset>\n`);
+console.log(`[prerender] ${artistsBuilt} artist page(s); sitemap has ${all.length} URLs`);
 
 console.log(`[prerender] ${weeks.length} published week(s); wrote ${urls.length} page(s): ${urls.map(u => u.path).join(', ') || '(none)'}`);

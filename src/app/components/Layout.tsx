@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router';
 import { Radio, Zap, Search, ListMusic, RefreshCw, Gamepad2, MessageCircle, Film, ShoppingBag, Disc3, FileText, DollarSign, RotateCcw, Lock as LockIcon, Info, Users } from 'lucide-react';
 import { EMAILS } from '../config/contact';
+import { ROUTE_SEO } from '../../data/seo/routes.mjs';
+import { setHead } from '../lib/head';
 import { usePlayer } from '../context/PlayerContext';
 import { useCrateSafe } from '../context/CrateContext';
 import { Player } from './Player';
@@ -34,8 +36,17 @@ interface LayoutProps {
 export function Layout({ children }: LayoutProps) {
   const { pathname } = useLocation();
   const { refreshTracks, isRefreshing, tracks, isPlaying, isFetchingMore, currentTrack } = usePlayer();
-  // Chart/producer pages carry their own title, meta and JSON-LD
-  useTrackSEO(currentTrack, !/^\/(hot|producers|news)(\/|$)/.test(pathname));
+  // Per-page title/description/canonical for the app's static routes (see src/data/seo/routes.mjs)
+  const routeSeo = (ROUTE_SEO as Record<string, { title: string; description: string; noindex?: boolean }>)[pathname];
+  useEffect(() => {
+    if (routeSeo) setHead({ ...routeSeo, path: pathname });
+    // isPlaying: re-apply after the track-title hook resets the head when playback stops
+  }, [pathname, routeSeo, isPlaying]);
+  // The "now playing" song goes in the tab only after a real visitor has interacted, so
+  // crawlers (which never click) always index each page's own title. Chart, news and
+  // producer pages manage their own head tags.
+  const hasInteracted = typeof navigator !== 'undefined' && !!(navigator as any).userActivation?.hasBeenActive;
+  useTrackSEO(currentTrack, hasInteracted && isPlaying && !/^\/(hot|producers|news|artists\/)/.test(pathname));
   const { showFlashSale, dismissFlashSale } = useSuperFan();
   const crateCtx = useCrateSafe();
   const is24k = crateCtx?.is24k ?? false;
@@ -294,10 +305,7 @@ export function Layout({ children }: LayoutProps) {
 
               {/* ── Row 4: Copyright ── */}
               <p className="text-[10px] font-mono text-[#2B2040] text-center">
-                Copyright 2026 Jersey Club Radio 24/7 &nbsp;&middot;&nbsp; Payments secured by{' '}
-                <a href="https://paddle.com" target="_blank" rel="noopener noreferrer" className="hover:text-[#C084FC] transition-colors">
-                  Paddle
-                </a>
+                Copyright 2026 Jersey Club Radio 24/7
               </p>
               <p className="text-[10px] text-[#3B2F50] text-center mt-[5px] mb-[0px]">&copy; Built by a Jersey Club DJ</p>
             </div>

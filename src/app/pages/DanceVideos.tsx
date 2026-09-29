@@ -68,10 +68,16 @@ export function DanceVideos() {
       if (!silent) setError(null);
 
       const endpoint = force ? `${API}/dance-videos/refresh` : `${API}/dance-videos`;
-      const res = await fetch(endpoint, {
+      const request = () => fetch(endpoint, {
         method: force ? 'POST' : 'GET',
         headers: { Authorization: `Bearer ${publicAnonKey}` },
       });
+      // One quiet retry covers brief network/server blips before we show an error
+      let res = await request().catch(() => null);
+      if (!res || !res.ok) {
+        await new Promise(r => setTimeout(r, 1500));
+        res = await request();
+      }
 
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
       const data = await res.json();
@@ -235,10 +241,11 @@ export function DanceVideos() {
             className="rounded-2xl p-6 text-center mb-6"
             style={{ background: '#1a0020', border: '1px solid #FF008040' }}
           >
-            <p className="text-[#FF0080] text-sm font-bold mb-2">Failed to load shorts</p>
-            <p className="text-[#5B4F70] text-xs mb-4">{error}</p>
+            <p className="text-[#FF0080] text-sm font-bold mb-2">The dance shorts didn't load</p>
+            <p className="text-[#9B8FB0] text-xs mb-4">This is usually a temporary hiccup. Give it another try in a moment.</p>
             <button
-              onClick={() => fetchVideos(true)}
+              // Plain reload; a forced refresh re-queries YouTube and spends API quota
+              onClick={() => fetchVideos()}
               className="px-4 py-2 rounded-xl text-xs font-bold text-white"
               style={{ background: 'linear-gradient(135deg, #9D00FF, #FF0080)' }}
             >
