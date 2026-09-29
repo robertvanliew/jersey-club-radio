@@ -1,6 +1,6 @@
 // Public contact addresses (all forward to the team inbox via ImprovMX).
 export const EMAILS = {
-  hello: 'hello@jerseyclubradio.com',       // general, sender of site emails
+  info: 'info@jerseyclubradio.com',         // general, sender of site emails (hello@ still forwards)
   ads: 'ads@jerseyclubradio.com',           // advertising & sponsorship
   bookings: 'bookings@jerseyclubradio.com', // DJ bookings & events
   press: 'press@jerseyclubradio.com',       // media & interviews

@@ -4070,7 +4070,7 @@ const INQUIRIES_KEY = 'jc_inquiries_v1';       // array, newest first
 // ── Email (Resend). Off until RESEND_API_KEY is set as a Supabase secret. ─────
 // EMAIL_FROM must use a domain verified in Resend (e.g. send.jerseyclubradio.com).
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") || "";
-const EMAIL_FROM = Deno.env.get("EMAIL_FROM") || "Jersey Club Radio <hello@jerseyclubradio.com>";
+const EMAIL_FROM = Deno.env.get("EMAIL_FROM") || "Jersey Club Radio <info@jerseyclubradio.com>";
 const ALERT_EMAIL = Deno.env.get("ALERT_EMAIL") || "jerseyclubradiohq@gmail.com";
 
 /** Send an email; never throws (a failed email must not fail the visitor's request). */

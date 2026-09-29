@@ -259,7 +259,7 @@ export function Layout({ children }: LayoutProps) {
                 The culture. Non-stop.
               </p>
               <p className="text-center text-xs mb-5">
-                <a href={`mailto:${EMAILS.hello}`} className="text-[#9B8FB0] hover:text-white transition-colors">{EMAILS.hello}</a>
+                <a href={`mailto:${EMAILS.info}`} className="text-[#9B8FB0] hover:text-white transition-colors">{EMAILS.info}</a>
               </p>
 
               {/* ── Divider ── */}

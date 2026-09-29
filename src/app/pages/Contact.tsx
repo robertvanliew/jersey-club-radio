@@ -9,7 +9,7 @@ const TOPICS = [
   { id: 'advertising', label: 'Advertise / sponsor', icon: Megaphone, email: EMAILS.ads, blurb: 'Reach Jersey club fans, dancers and producers: sponsor the Rising Now chart, the stream or the weekly email.' },
   { id: 'booking', label: 'Bookings', icon: CalendarDays, email: EMAILS.bookings, blurb: 'DJ sets, events and live broadcasts.' },
   { id: 'press', label: 'Press', icon: Newspaper, email: EMAILS.press, blurb: 'Interviews, features and media requests.' },
-  { id: 'general', label: 'General', icon: MessageSquare, email: EMAILS.hello, blurb: 'Anything else: feedback, partnerships, questions.' },
+  { id: 'general', label: 'General', icon: MessageSquare, email: EMAILS.info, blurb: 'Anything else: feedback, partnerships, questions.' },
 ] as const;
 type TopicId = typeof TOPICS[number]['id'];
 
@@ -44,7 +44,7 @@ export function ContactPage() {
 
       <section className="p-4 md:p-5 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2" style={CARD_STYLE} aria-label="Email us directly">
         {[
-          ['General', EMAILS.hello], ['Advertising & sponsorship', EMAILS.ads], ['Bookings', EMAILS.bookings],
+          ['General', EMAILS.info], ['Advertising & sponsorship', EMAILS.ads], ['Bookings', EMAILS.bookings],
           ['Press', EMAILS.press], ['Music & submissions', EMAILS.music], ['Billing & refunds', EMAILS.refunds],
         ].map(([label, email]) => (
           <p key={email} className="text-xs text-[#9B8FB0]">

@@ -153,7 +153,7 @@ export function TermsOfService() {
           <Section title="7. Contact">
             <p>
               Questions about these terms? Email{' '}
-              <a href={`mailto:${EMAILS.hello}`} className="text-[#C084FC] underline underline-offset-2">{EMAILS.hello}</a>.
+              <a href={`mailto:${EMAILS.info}`} className="text-[#C084FC] underline underline-offset-2">{EMAILS.info}</a>.
             </p>
           </Section>
         </div>
