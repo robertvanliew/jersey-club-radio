@@ -22,6 +22,19 @@ export function inlineSegments(text) {
 /** Plain text (links reduced to their label), for descriptions */
 export const plainText = text => inlineSegments(text).map(s => s.text).join('');
 
+/** Named bylines: shown as a link and marked up as a Person (anything else is the organization) */
+export const AUTHORS = {
+  'Robert Van Liew': { url: 'https://robertvanliew.com', jobTitle: 'Designer and engineer of Jersey Club Radio' },
+};
+
+/** schema.org author for an article */
+export function authorJsonLd(name) {
+  const p = AUTHORS[name];
+  return p
+    ? { '@type': 'Person', name, url: p.url, jobTitle: p.jobTitle, sameAs: [p.url], worksFor: { '@type': 'Organization', name: 'Jersey Club Radio', url: SITE_URL } }
+    : { '@type': 'Organization', name, url: SITE_URL };
+}
+
 /** schema.org JSON-LD for an article page */
 export function articleJsonLd(a) {
   return {
@@ -33,7 +46,7 @@ export function articleJsonLd(a) {
     inLanguage: 'en-US',
     datePublished: a.date,
     dateModified: a.date,
-    author: { '@type': 'Organization', name: a.author, url: SITE_URL },
+    author: authorJsonLd(a.author),
     publisher: { '@type': 'Organization', name: 'Jersey Club Radio', url: SITE_URL },
     mainEntityOfPage: `${SITE_URL}/news/${a.slug}`,
     articleSection: a.tag,

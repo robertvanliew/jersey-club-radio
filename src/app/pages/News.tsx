@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router';
 import { Share2, Link2, Check, ChevronRight, Flame } from 'lucide-react';
 import { toast } from 'sonner';
 import { articles, getArticle, type NewsArticle, type Block } from '../../data/news';
-import { inlineSegments, shareLinks } from '../../data/news/newsUtils.mjs';
+import { inlineSegments, shareLinks, AUTHORS } from '../../data/news/newsUtils.mjs';
 import { SITE_URL, formatWeek } from '../../data/charts/chartUtils.mjs';
 import { latestWeek, getChart } from '../../data/charts';
 import { CARD_STYLE } from '../components/RisingNow';
@@ -108,7 +108,13 @@ export function ArticlePage() {
       <p className="text-[11px] font-black tracking-widest uppercase text-[#FF4DA6]">{a.tag}</p>
       <h1 className="text-2xl md:text-4xl font-black text-white leading-tight mt-1">{a.title}</h1>
       <p className="text-base md:text-lg text-[#B9A6D6] mt-3 leading-snug">{a.dek}</p>
-      <p className="text-xs text-[#7B6F90] mt-3">By {a.author} · {fmtDate(a.date)}</p>
+      <p className="text-xs text-[#7B6F90] mt-3">
+        By{' '}
+        {(AUTHORS as Record<string, { url: string }>)[a.author]
+          ? <a href={(AUTHORS as Record<string, { url: string }>)[a.author].url} target="_blank" rel="author noopener" className="font-semibold text-[#C080FF] hover:text-white">{a.author}</a>
+          : a.author}
+        {' '}· {fmtDate(a.date)}
+      </p>
       <div className="my-5"><ShareBar url={url} title={a.title} /></div>
       <div>{a.body.map((b, i) => <BlockView key={i} block={b} />)}</div>
       <section className="mt-6 pt-4" style={{ borderTop: '1px solid rgba(157,0,255,0.2)' }}>

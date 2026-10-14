@@ -15,7 +15,7 @@ import {
   SITE_URL, movement, producerSlug, formatWeek, publishedWeeks, neighbours, producerHistory,
   validateChart, chartJsonLd, producerJsonLd,
 } from '../src/data/charts/chartUtils.mjs';
-import { publishedArticles, inlineSegments, articleJsonLd, shareLinks } from '../src/data/news/newsUtils.mjs';
+import { publishedArticles, inlineSegments, articleJsonLd, shareLinks, AUTHORS } from '../src/data/news/newsUtils.mjs';
 import { ROUTE_SEO, artistSeo } from '../src/data/seo/routes.mjs';
 import { HOME_EXPLAINER } from '../src/data/seo/home.mjs';
 
@@ -154,7 +154,7 @@ for (const a of news) {
     title: `${a.title} | Jersey Club Radio`,
     description: a.description ?? a.dek,
     jsonLd: articleJsonLd(a),
-    body: `<article><p><small>${esc(a.tag)}</small></p><h1>${esc(a.title)}</h1><p><em>${esc(a.dek)}</em></p><p><small>By ${esc(a.author)} · ${esc(a.date)}</small></p>${a.body.map(blockHtml).join('')}<h2>Sources</h2><ul>${a.sources.map(s => `<li>${esc(s.publication)}: <a href="${esc(s.url)}" rel="noopener">${esc(s.title)}</a></li>`).join('')}</ul><p>Share: <a href="${esc(share.x)}">X</a> · <a href="${esc(share.facebook)}">Facebook</a> · <a href="${esc(share.whatsapp)}">WhatsApp</a></p><p><a href="/news">More stories</a> · <a href="/hot">This week's Rising Now chart</a></p></article>`,
+    body: `<article><p><small>${esc(a.tag)}</small></p><h1>${esc(a.title)}</h1><p><em>${esc(a.dek)}</em></p><p><small>By ${AUTHORS[a.author] ? `<a href="${esc(AUTHORS[a.author].url)}" rel="author">${esc(a.author)}</a>` : esc(a.author)} · ${esc(a.date)}</small></p>${a.body.map(blockHtml).join('')}<h2>Sources</h2><ul>${a.sources.map(s => `<li>${esc(s.publication)}: <a href="${esc(s.url)}" rel="noopener">${esc(s.title)}</a></li>`).join('')}</ul><p>Share: <a href="${esc(share.x)}">X</a> · <a href="${esc(share.facebook)}">Facebook</a> · <a href="${esc(share.whatsapp)}">WhatsApp</a></p><p><a href="/news">More stories</a> · <a href="/hot">This week's Rising Now chart</a></p></article>`,
   }), lastmod: a.date });
 }
 if (news.length) {
