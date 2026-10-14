@@ -103,11 +103,17 @@ const all = await searchRecent(cid);
 const candidates = all.filter(isCandidate);
 console.log(`[draft] week ${week}: ${all.length} recent search results, ${candidates.length} Jersey club candidates; previous snapshot: ${prevSnap?.file ?? 'none'}`);
 
+// Days since the previous snapshot (more than 7 when a week was missed): gains are scaled to
+// a per-week rate so they rank fairly against new uploads, and labelled with the real span
+const prevWeek = prevSnap?.file.match(/(\d{4}-\d{2}-\d{2})\.json$/)?.[1];
+const gapDays = prevWeek ? Math.max(1, (Date.parse(week) - Date.parse(prevWeek)) / DAY) : 7;
+
 const scored = candidates.map(t => {
   const ageDays = Math.max(1, (now - Date.parse(t.created_at)) / DAY);
   const before = prevSnap?.data[t.id]?.plays;
-  const weekly = before != null ? Math.max(0, t.playback_count - before) : Math.round(t.playback_count * 7 / Math.max(ageDays, 7));
-  return { t, ageDays, before, weekly };
+  const gained = before != null ? Math.max(0, t.playback_count - before) : 0;
+  const weekly = before != null ? Math.round(gained * 7 / gapDays) : Math.round(t.playback_count * 7 / Math.max(ageDays, 7));
+  return { t, ageDays, before, gained, weekly };
 }).sort((a, b) => b.weekly - a.weekly);
 
 const perArtist = new Map();
@@ -120,13 +126,14 @@ for (const s of scored) {
   if (picked.length === SIZE) break;
 }
 
-const entries = picked.map(({ t, ageDays, before, weekly }, i) => {
+const span = gapDays === 7 ? 'this week' : `since ${fmtDate(prevWeek)}`;
+const entries = picked.map(({ t, ageDays, before, gained, weekly }, i) => {
   const url = t.permalink_url;
   const prev = prevBySc.get(url);
   const signal = ageDays <= 7
     ? { type: 'new', note: `Released ${fmtDate(t.created_at)}: ${k(t.playback_count)} plays in ${Math.ceil(ageDays)} day${ageDays > 1 ? 's' : ''}`, url }
     : before != null
-      ? { type: 'listeners', note: `${k(weekly)} plays this week (${k(before)} → ${k(t.playback_count)}${before > 0 ? `, +${Math.round((weekly / before) * 100)}%` : ''})`, url }
+      ? { type: 'listeners', note: `${k(gained)} plays ${span} (${k(before)} → ${k(t.playback_count)}${before > 0 ? `, +${Math.round((gained / before) * 100)}%` : ''})`, url }
       : { type: 'listeners', note: `~${k(weekly)} plays a week since release · ${k(t.likes_count ?? 0)} likes · ${k(t.reposts_count ?? 0)} reposts`, url };
   return {
     rank: i + 1,

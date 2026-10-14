@@ -67,7 +67,7 @@ const STYLE = `<style>.jc-static{max-width:760px;margin:0 auto;padding:24px 16px
 const template = readFileSync(join(DIST, 'index.html'), 'utf8');
 
 /** Fill the SPA shell with a page's head tags and static body */
-function page({ path, title, description, jsonLd, body, noindex = false }) {
+function page({ path, title, description, jsonLd, body, noindex = false, file }) {
   const url = SITE_URL + path;
   let html = template
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(title)}</title>`)
@@ -85,8 +85,9 @@ function page({ path, title, description, jsonLd, body, noindex = false }) {
     .replace(/<noscript>[\s\S]*?<\/noscript>\s*/, '')
     .replace('</head>', `${jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>\n` : ''}${STYLE}\n</head>`)
     .replace('<div id="root"></div>', `<div id="root"><main class="jc-static">${body}</main></div>`);
-  const out = join(DIST, path, 'index.html');
-  mkdirSync(join(DIST, path), { recursive: true });
+  // `file`: write to this path under dist instead of <path>/index.html (used for 404.html)
+  const out = file ? join(DIST, file) : join(DIST, path, 'index.html');
+  if (!file) mkdirSync(join(DIST, path), { recursive: true });
   writeFileSync(out, html);
   return path;
 }
@@ -204,6 +205,24 @@ try {
 } catch (e) {
   console.warn(`[prerender] artist pages skipped: ${e.message}`);
 }
+
+// ── /artists: the artist list in the HTML (the app loads it from the API) ──
+if (artistList.length) {
+  const seo = ROUTE_SEO['/artists'];
+  page({
+    path: '/artists', title: seo.title, description: seo.description,
+    jsonLd: { '@context': 'https://schema.org', '@type': 'CollectionPage', name: seo.title, description: seo.description, url: `${SITE_URL}/artists`, mainEntity: { '@type': 'ItemList', itemListElement: artistList.map((a, i) => ({ '@type': 'ListItem', position: i + 1, url: SITE_URL + a.path, name: a.name })) } },
+    body: `<h1>Jersey Club Artists &amp; DJs</h1><p>${esc(seo.description)}</p><ul>${artistList.map(a => `<li><a href="${a.path}">${esc(a.name)}</a>${a.role ? `, ${esc(a.role)}` : ''}</li>`).join('')}</ul>${SECTION_LINKS}`,
+  });
+}
+
+// ── 404.html: Vercel serves it, with a 404 status, for any path with no file ──
+page({
+  path: '/404', file: '404.html', noindex: true, jsonLd: null,
+  title: 'Page Not Found | Jersey Club Radio',
+  description: 'That page does not exist. Listen to Jersey Club Radio live, or browse the chart, stories and artists.',
+  body: `<h1>Page not found</h1><p>That page doesn't exist, but the station is still playing.</p>${SECTION_LINKS}`,
+});
 
 // ── Homepage: crawler-readable body (genre explainer, this week's chart, stories, artists) ──
 // AI crawlers don't run JavaScript, so without this the homepage is an empty #root to them.

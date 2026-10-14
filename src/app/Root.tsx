@@ -66,7 +66,9 @@ export default function Root() {
           transition={{ duration: 0.25, ease: 'easeOut' }}
           // flex-1 (not min-h-full): <main> also holds the footer, so min-h-full made this
           // wrapper as tall as content + footer and pushed the footer down by its own height
-          className="flex-1 flex flex-col"
+          // min-h-screen: the footer starts below the fold, so content loading in above it
+          // can't push it down on screen (that jump was most of the homepage's layout shift)
+          className="flex-1 flex flex-col min-h-screen"
         >
           <Suspense fallback={<PageLoader />}>
             <Outlet />

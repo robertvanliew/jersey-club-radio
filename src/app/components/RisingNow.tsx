@@ -46,7 +46,7 @@ export function RisingNowRow({ entry }: { entry: ChartEntry }) {
         <Movement entry={entry} />
       </div>
       {entry.artwork ? (
-        <img src={entry.artwork} alt="" loading="lazy" className="w-11 h-11 md:w-12 md:h-12 rounded-md object-cover shrink-0" />
+        <img src={entry.artwork} alt={`${entry.title} by ${entry.producer}, Jersey club cover art`} loading="lazy" className="w-11 h-11 md:w-12 md:h-12 rounded-md object-cover shrink-0" />
       ) : (
         <div className="w-11 h-11 md:w-12 md:h-12 rounded-md shrink-0 flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #2A0050, #4A0030)' }}>
           <Music2 className="w-5 h-5 text-[#9D00FF]" />

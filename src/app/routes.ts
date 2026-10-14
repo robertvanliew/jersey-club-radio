@@ -31,6 +31,7 @@ const ProducerPage = lazy(() => import('./pages/Hot').then(m => ({ default: m.Pr
 const NewsIndexPage = lazy(() => import('./pages/News').then(m => ({ default: m.NewsIndexPage })));
 const ArticlePage = lazy(() => import('./pages/News').then(m => ({ default: m.ArticlePage })));
 const ContactPage = lazy(() => import('./pages/Contact').then(m => ({ default: m.ContactPage })));
+const NotFound = lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
 
 export const router = createBrowserRouter([
   {
@@ -64,6 +65,7 @@ export const router = createBrowserRouter([
           { path: 'news', Component: NewsIndexPage },
           { path: 'news/:slug', Component: ArticlePage },
           { path: 'contact', Component: ContactPage },
+          { path: '*', Component: NotFound },
         ],
       },
       // Legal pages — standalone layout (no sidebar/player chrome)
