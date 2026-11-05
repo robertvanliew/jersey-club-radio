@@ -5,6 +5,7 @@ import { usePlayer } from '../context/PlayerContext';
 import { KICK_PAGE } from '../../data/seo/kickPattern.mjs';
 import { PRESETS, LANES, STEPS, VOICES, cloneGrid, events, toMidi, type Grid, type Lane } from '../lib/jerseyDrums';
 import { setHead } from '../lib/head';
+import { wavBlob as wav, saveFile as save } from '../lib/audioFile';
 import { CARD_STYLE } from '../components/RisingNow';
 
 const LANE_LABEL: Record<Lane, string> = { kick: 'Kick', clap: 'Clap', hat: 'Hat', squeak: 'Squeak' };
@@ -15,24 +16,6 @@ const fmtDate = (d: string) => new Date(d).toLocaleDateString('en-US', { year: '
 function scheduleLoop(ctx: BaseAudioContext, out: AudioNode, grid: Grid, roll: boolean, bpm: number, start: number) {
   const step = 60 / bpm / 4;
   for (const e of events(grid, roll)) VOICES[e.lane](ctx, out, start + e.at * step, e.vel);
-}
-
-function save(blob: Blob, name: string) {
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = name; a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-}
-
-/** 16-bit PCM WAV from an AudioBuffer */
-function wav(buf: AudioBuffer) {
-  const ch = buf.numberOfChannels, len = buf.length * ch * 2, v = new DataView(new ArrayBuffer(44 + len));
-  const str = (o: number, s: string) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
-  str(0, 'RIFF'); v.setUint32(4, 36 + len, true); str(8, 'WAVE'); str(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true);
-  v.setUint16(22, ch, true); v.setUint32(24, buf.sampleRate, true); v.setUint32(28, buf.sampleRate * ch * 2, true); v.setUint16(32, ch * 2, true); v.setUint16(34, 16, true);
-  str(36, 'data'); v.setUint32(40, len, true);
-  let o = 44;
-  for (let i = 0; i < buf.length; i++) for (let c = 0; c < ch; c++) { const s = Math.max(-1, Math.min(1, buf.getChannelData(c)[i])); v.setInt16(o, s < 0 ? s * 0x8000 : s * 0x7fff, true); o += 2; }
-  return new Blob([v], { type: 'audio/wav' });
 }
 
 /** /jersey-club-kick-pattern: hear the classic Jersey club kick, edit it, download MIDI or WAV */

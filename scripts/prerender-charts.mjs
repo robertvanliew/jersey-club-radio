@@ -22,6 +22,7 @@ import { HOME_EXPLAINER } from '../src/data/seo/home.mjs';
 import { LISTEN } from '../src/data/seo/listen.mjs';
 import { BPM_PAGE } from '../src/data/seo/bpm.mjs';
 import { KICK_PAGE } from '../src/data/seo/kickPattern.mjs';
+import { SQUEAK_PAGE } from '../src/data/seo/bedSqueak.mjs';
 import { BEST_SONGS, sourceLabel } from '../src/data/seo/bestSongs.mjs';
 import { GUIDES } from '../src/data/seo/guides.mjs';
 import { ARTIST_PROFILES, PROFILES_UPDATED } from '../src/data/artists/profiles.mjs';
@@ -340,6 +341,22 @@ ${KICK_PAGE.sections.map(s => `<h2>${esc(s.h2)}</h2>${s.body.map(x => `<p>${esc(
 });
 urls.push({ path: KICK_PAGE.path, lastmod: KICK_PAGE.updated, changefreq: 'monthly' });
 
+// ── /jersey-club-bed-squeak: origin story + free sound board ──
+page({
+  path: SQUEAK_PAGE.path, title: SQUEAK_PAGE.title, description: SQUEAK_PAGE.description,
+  jsonLd: { '@context': 'https://schema.org', '@graph': [
+    { '@type': 'Article', headline: SQUEAK_PAGE.heading, description: SQUEAK_PAGE.description, url: SITE_URL + SQUEAK_PAGE.path, datePublished: SQUEAK_PAGE.updated, dateModified: SQUEAK_PAGE.updated, author: authorJsonLd('Robert Van Liew'), publisher: { '@type': 'Organization', name: 'Jersey Club Radio', url: SITE_URL }, about: { '@type': 'MusicRecording', name: 'Some Cut', byArtist: { '@type': 'MusicGroup', name: 'Trillville' } } },
+    { '@type': 'FAQPage', mainEntity: SQUEAK_PAGE.faq.map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) },
+  ] },
+  body: `<article><h1>${esc(SQUEAK_PAGE.heading)}</h1><p><small>By <a href="https://robertvanliew.com" rel="author">Robert Van Liew</a> · Last updated ${esc(SQUEAK_PAGE.updated)}</small></p><p>${esc(SQUEAK_PAGE.answer)}</p>
+<h2>Free Jersey club sound board</h2><p>Original creaks, kicks, claps and hats, free to play and download as WAV (CC0) on this page.</p>
+${SQUEAK_PAGE.sections.map(s => `<h2>${esc(s.h2)}</h2>${s.body.map(x => `<p>${richHtml(x)}</p>`).join('')}`).join('')}
+<h2>Common questions</h2>${SQUEAK_PAGE.faq.map(f => `<h3>${esc(f.q)}</h3><p>${esc(f.a)}</p>`).join('')}
+<h2>Sources</h2><ul>${SQUEAK_PAGE.sources.map(s => `<li><a href="${esc(s.url)}" rel="noopener">${esc(s.name)}</a></li>`).join('')}</ul>
+<p>${SQUEAK_PAGE.related.map(([to, label]) => `<a href="${to}">${esc(label)}</a>`).join(' · ')}</p></article>${SECTION_LINKS}`,
+});
+urls.push({ path: SQUEAK_PAGE.path, lastmod: SQUEAK_PAGE.updated, changefreq: 'monthly' });
+
 // ── 404.html: Vercel serves it, with a 404 status, for any path with no file ──
 page({
   path: '/404', file: '404.html', noindex: true, jsonLd: null,
@@ -379,6 +396,7 @@ ${md(e.definition)}
 - [Listen live](${SITE_URL}/): The 24/7 Jersey club radio stream
 - [24/7 Jersey club radio station](${SITE_URL}/listen): What the station is, how to listen, other Jersey club radio shows
 - [Best Jersey club songs](${SITE_URL}/best-jersey-club-songs): 49 essential Jersey club songs by era, each with why it matters and sources
+- [Jersey club bed squeak](${SITE_URL}/jersey-club-bed-squeak): Where the squeak comes from (Trillville's "Some Cut", 2004) and free original Jersey club sounds
 - [Jersey club kick pattern](${SITE_URL}/jersey-club-kick-pattern): The classic kick pattern (steps 1, 5, 9, 12, 15), playable, with free MIDI and WAV downloads
 - [Jersey club BPM](${SITE_URL}/jersey-club-bpm): Tempo range (about 130 to 140 BPM) and a free tap tempo tool
 ${GUIDES.map(g => `- [${md(g.heading)}](${SITE_URL}${g.path}): ${md(g.description)}`).join('\n')}

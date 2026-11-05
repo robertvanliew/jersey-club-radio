@@ -36,5 +36,5 @@ export const KICK_PAGE = {
     { name: 'Orphiq: What is Jersey club?', url: 'https://orphiq.com/resources/what-is-jersey-club' },
     { name: 'Wikipedia: Jersey club', url: 'https://en.wikipedia.org/wiki/Jersey_club' },
   ],
-  related: [['/jersey-club-bpm', 'Jersey club BPM tool'], ['/games/beat-maker', 'Jersey club beat maker'], ['/what-is-jersey-club', 'What is Jersey club?'], ['/listen', 'Listen to Jersey club 24/7']],
+  related: [['/jersey-club-bed-squeak', 'Bed squeak + free sounds'], ['/jersey-club-bpm', 'Jersey club BPM tool'], ['/games/beat-maker', 'Jersey club beat maker'], ['/what-is-jersey-club', 'What is Jersey club?'], ['/listen', 'Listen to Jersey club 24/7']],
 };

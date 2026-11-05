@@ -35,6 +35,7 @@ const GuidePage = lazy(() => import('./pages/Guide').then(m => ({ default: m.Gui
 const BpmTool = lazy(() => import('./pages/BpmTool').then(m => ({ default: m.BpmTool })));
 const BestSongs = lazy(() => import('./pages/BestSongs').then(m => ({ default: m.BestSongs })));
 const KickPattern = lazy(() => import('./pages/KickPattern').then(m => ({ default: m.KickPattern })));
+const BedSqueak = lazy(() => import('./pages/BedSqueak').then(m => ({ default: m.BedSqueak })));
 const ListenPage = lazy(() => import('./pages/Listen').then(m => ({ default: m.ListenPage })));
 const NotFound = lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
 
@@ -77,6 +78,7 @@ export const router = createBrowserRouter([
           { path: 'jersey-club-dances', Component: GuidePage },
           { path: 'best-jersey-club-songs', Component: BestSongs },
           { path: 'jersey-club-kick-pattern', Component: KickPattern },
+          { path: 'jersey-club-bed-squeak', Component: BedSqueak },
           { path: '*', Component: NotFound },
         ],
       },
