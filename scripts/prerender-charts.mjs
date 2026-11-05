@@ -20,6 +20,7 @@ import { ROUTE_SEO, artistSeo } from '../src/data/seo/routes.mjs';
 import { HOME_EXPLAINER } from '../src/data/seo/home.mjs';
 import { LISTEN } from '../src/data/seo/listen.mjs';
 import { GUIDES } from '../src/data/seo/guides.mjs';
+import { ARTIST_PROFILES, PROFILES_UPDATED } from '../src/data/artists/profiles.mjs';
 
 const DIST = 'dist';
 const CHART_DIR = 'src/data/charts';
@@ -182,6 +183,26 @@ for (const [path, seo] of Object.entries(ROUTE_SEO)) {
   if (!seo.noindex) urls.push({ path, lastmod: today, changefreq: path === '/new-releases' || path === '/dance-videos' ? 'daily' : 'monthly' });
 }
 
+// Artist socials are stored as handles or IDs; build full profile URLs (for sameAs and links)
+const SOCIAL_URL = {
+  instagram: h => `https://www.instagram.com/${h}`, twitter: h => `https://x.com/${h}`, tiktok: h => `https://www.tiktok.com/@${h}`,
+  soundcloud: h => `https://soundcloud.com/${h}`, spotify: h => `https://open.spotify.com/artist/${h}`, patreon: h => `https://www.patreon.com/${h}`,
+  youtube: h => (/^UC[\w-]{20,}$/.test(h) ? `https://www.youtube.com/channel/${h}` : `https://www.youtube.com/@${h.replace(/\.$/, '')}`),
+};
+const socialUrl = (k, v) => {
+  const h = String(v ?? '').trim().replace(/^@/, '').replace(/\?$/, '');
+  if (!h) return null;
+  if (/^https?:\/\//.test(h)) return h;
+  return SOCIAL_URL[k] ? SOCIAL_URL[k](h) : null;
+};
+const profileHtml = (name, p) => `<h2>Who is ${esc(name)}?</h2><p>${richInline(p.intro)}</p>
+${p.facts?.length ? `<ul>${p.facts.map(([k, v]) => `<li><strong>${esc(k)}:</strong> ${esc(v)}</li>`).join('')}</ul>` : ''}
+${p.sections.map(s => `<h2>${esc(s.h2)}</h2>${s.body.map(x => `<p>${richInline(x)}</p>`).join('')}`).join('')}
+${p.signatureTracks?.length ? `<h2>Signature tracks</h2><ul>${p.signatureTracks.map(t => `<li>${esc(t.title)}${t.year ? ` (${esc(t.year)})` : ''}${t.note ? `: ${esc(t.note)}` : ''}</li>`).join('')}</ul>` : ''}
+<h2>Sources</h2><ul>${p.sources.map(s => `<li><a href="${esc(s.url)}" rel="noopener">${esc(s.name)}</a></li>`).join('')}</ul>
+<p><small>Profile by <a href="https://robertvanliew.com" rel="author">Robert Van Liew</a> · Last updated ${esc(PROFILES_UPDATED)}</small></p>`;
+const richInline = t => inlineSegments(t).map(s => (s.href ? `<a href="${esc(s.href)}">${esc(s.text)}</a>` : esc(s.text))).join('');
+
 // ── Artist profiles (fetched from the live API at build time; skipped if unreachable) ──
 let artistsBuilt = 0;
 const artistList = [];
@@ -192,15 +213,20 @@ try {
   const res = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-715f71b9/artists`, { headers: { Authorization: `Bearer ${anon}` }, signal: AbortSignal.timeout(15000) });
   const artists = res.ok ? await res.json() : [];
   for (const a of (Array.isArray(artists) ? artists : []).filter(x => x.slug && x.name && x.visible !== false)) {
+    const profile = ARTIST_PROFILES[a.slug];
     const seo = artistSeo(a);
-    const socials = Object.values(a.socials || {}).filter(v => typeof v === 'string' && /^https?:\/\//.test(v));
+    if (profile) seo.description = profile.intro.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').slice(0, 300);
+    const socials = Object.entries(a.socials || {}).map(([k, v]) => socialUrl(k, v)).filter(Boolean);
     const path = `/artists/${a.slug}`;
+    const plainIntro = profile?.intro.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
     page({
       path, title: seo.title, description: seo.description,
-      jsonLd: { '@context': 'https://schema.org', '@type': 'Person', name: a.name, jobTitle: a.role, description: String(a.bio || '').slice(0, 500), url: SITE_URL + path, ...(a.photoUrl ? { image: a.photoUrl } : {}), ...(socials.length ? { sameAs: socials } : {}), genre: 'Jersey club' },
-      body: `<h1>${esc(a.name)}</h1><p><strong>${esc(a.role || 'Jersey club artist')}</strong></p>${a.photoUrl ? `<img src="${esc(a.photoUrl)}" alt="${esc(a.name)}" width="240" style="border-radius:12px">` : ''}${String(a.bio || '').split(/\n+/).filter(Boolean).map(p => `<p>${esc(p)}</p>`).join('')}${socials.length ? `<p>${socials.map(s => `<a href="${esc(s)}" rel="noopener">${esc(new URL(s).hostname.replace('www.', ''))}</a>`).join(' · ')}</p>` : ''}<p><a href="/artists">All Jersey club artists</a> · <a href="/">Listen to Jersey Club Radio</a></p>`,
+      jsonLd: { '@context': 'https://schema.org', '@type': 'ProfilePage', url: SITE_URL + path, ...(profile ? { dateModified: PROFILES_UPDATED } : {}),
+        mainEntity: { '@type': 'Person', name: a.name, jobTitle: a.role, description: plainIntro || String(a.bio || '').slice(0, 500), url: SITE_URL + path, ...(a.photoUrl ? { image: a.photoUrl } : {}), ...(socials.length ? { sameAs: socials } : {}), genre: 'Jersey club',
+          ...(profile?.sources?.find(s => /wikipedia\.org/.test(s.url)) ? { sameAs: [...socials, profile.sources.find(s => /wikipedia\.org/.test(s.url)).url] } : {}) } },
+      body: `<h1>${esc(a.name)}</h1><p><strong>${esc(a.role || 'Jersey club artist')}</strong></p>${a.photoUrl ? `<img src="${esc(a.photoUrl)}" alt="${esc(a.name)}" width="240" style="border-radius:12px">` : ''}${profile ? '' : String(a.bio || '').split(/\n+/).filter(Boolean).map(p => `<p>${esc(p)}</p>`).join('')}${socials.length ? `<p>${socials.map(s => `<a href="${esc(s)}" rel="noopener">${esc(new URL(s).hostname.replace('www.', ''))}</a>`).join(' · ')}</p>` : ''}${profile ? profileHtml(a.name, profile) : ''}<p><a href="/artists">All Jersey club artists</a> · <a href="/">Listen to Jersey Club Radio</a></p>`,
     });
-    urls.push({ path, lastmod: (a.updatedAt || today).slice(0, 10), changefreq: 'monthly' });
+    urls.push({ path, lastmod: profile ? PROFILES_UPDATED : (a.updatedAt || today).slice(0, 10), changefreq: 'monthly' });
     artistsBuilt++;
     artistList.push({ path, name: a.name, role: a.role });
   }

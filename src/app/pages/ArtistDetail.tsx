@@ -7,6 +7,10 @@ import { formatTrackTitle } from '../utils/formatTrackTitle';
 import { usePlayer, Track } from '../context/PlayerContext';
 import { useCrateSafe } from '../context/CrateContext';
 import { GoldVinylRecord } from '../components/GoldVinylRecord';
+import { ArtistProfile, hasArtistProfile } from '../components/ArtistProfile';
+import { artistSeo } from '../../data/seo/routes.mjs';
+import { ARTIST_PROFILES } from '../../data/artists/profiles.mjs';
+import { setHead } from '../lib/head';
 
 const BASE = `https://${projectId}.supabase.co/functions/v1/make-server-715f71b9`;
 
@@ -1199,6 +1203,14 @@ export function ArtistDetail() {
             .catch(() => { setNotFound(true); setLoading(false); });
     }, [slug]);
 
+    // Same title/description/canonical as the prerendered page (scripts/prerender-charts.mjs)
+    useEffect(() => {
+        if (!artist?.slug) return;
+        const seo = artistSeo(artist);
+        const intro = (ARTIST_PROFILES as Record<string, { intro: string }>)[artist.slug]?.intro;
+        setHead({ title: seo.title, description: intro ? intro.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').slice(0, 300) : seo.description, path: `/artists/${artist.slug}` });
+    }, [artist]);
+
     if (loading) {
         return (
             <div className="flex items-center justify-center h-[60vh]">
@@ -1375,7 +1387,8 @@ export function ArtistDetail() {
                         </div>
 
                         {/* Bio */}
-                        {artist.bio && (
+                        {/* Bio (the verified long-form profile below replaces it when one exists) */}
+                        {artist.bio && !hasArtistProfile(artist.slug) && (
                             <p className="text-[#8B7FA0] text-sm leading-relaxed">
                                 {artist.bio}
                             </p>
@@ -1436,6 +1449,9 @@ export function ArtistDetail() {
                     </div>
                 </div>
             </motion.div>
+
+            {/* Researched long-form profile (src/data/artists/profiles.mjs) */}
+            <ArtistProfile slug={artist.slug} name={artist.name} />
 
             {/* Badge Zoom Lightbox */}
             {zoomedAward && (
