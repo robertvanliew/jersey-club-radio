@@ -380,6 +380,37 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     return widget;
   };
 
+  /**
+   * Point a deck's <audio> at a stream. Plain MP3 URLs go straight in. HLS (chunked) streams
+   * play natively where supported (Safari, iOS) and through hls.js elsewhere; both keep the
+   * same <audio> element, so the Web Audio chain (EQ Mix, normalization) is unchanged.
+   */
+  const hlsRef = useRef<Partial<Record<DeckId, { destroy: () => void }>>>({});
+  const attachStream = async (deck: DeckId, audio: HTMLAudioElement, url: string, isHls: boolean, onFail: () => void) => {
+    hlsRef.current[deck]?.destroy();
+    delete hlsRef.current[deck];
+    if (!isHls) { audio.src = url; return; }
+    // hls.js first: Chrome's built-in HLS plays, but its audio comes out silent through Web
+    // Audio. Built-in HLS only where hls.js can't run (older iPhones without MediaSource).
+    const { default: Hls } = await import('hls.js');
+    if (!Hls.isSupported()) {
+      if (audio.canPlayType('application/vnd.apple.mpegurl')) { audio.src = url; return; }
+      throw new Error('HLS not supported in this browser');
+    }
+    const hls = new Hls({ enableWorker: true, maxBufferLength: 30 });
+    hls.on(Hls.Events.ERROR, (_e, d) => {
+      if (!d.fatal) return;
+      console.warn(`[SC Native] HLS error on Deck ${deck}: ${d.details}`);
+      if (d.type === Hls.ErrorTypes.MEDIA_ERROR) { hls.recoverMediaError(); return; }
+      hls.destroy();
+      if (hlsRef.current[deck] === hls) delete hlsRef.current[deck];
+      onFail();
+    });
+    hls.loadSource(url);
+    hls.attachMedia(audio);
+    hlsRef.current[deck] = hls;
+  };
+
   /** A native deck's play() was rejected. NotAllowedError = the browser blocked it (no tap yet) */
   const onNativePlayError = (deck: DeckId, e: unknown) => {
     if ((e as DOMException)?.name === 'NotAllowedError') onPlayBlockedRef.current(deck);
@@ -627,10 +658,16 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
         fetch(`${BASE}/sc-stream?id=${numericId}`, { headers: HEADERS })
           .then(r => r.json())
-          .then(data => {
+          .then(async data => {
             if (isStale()) return;
             if (!data.url) throw new Error(data.error || 'No stream URL');
-            audio.src = data.url;
+            await attachStream(deck, audio, data.url, !!data.hls, () => {
+              if (isStale()) return;
+              console.warn(`[SC Native] HLS stream failed for "${track.snippet.title}"; using the embedded player`);
+              audio.pause();
+              loadWidget();
+            });
+            if (isStale()) return;
             deckReadyRef.current[deck] = true;
             audio.addEventListener('playing', () => { if (!isStale()) onTrackPlayingRef.current(); }, { once: true });
             if (deckWantsPlayRef.current[deck]) {

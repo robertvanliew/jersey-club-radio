@@ -896,8 +896,12 @@ app.post("/make-server-715f71b9/tracks/more", async (c) => {
 // Resolve a SoundCloud track to a fresh progressive MP3 stream URL.
 // Called by the client just before playback — CDN URLs are time-limited so we
 // always fetch a fresh one rather than caching.
-/** Resolve a SoundCloud track's direct (progressive MP3) stream URL, or say why not. */
-async function resolveScStream(trackId: string): Promise<{ url: string } | { error: string; status: number }> {
+/**
+ * Resolve a SoundCloud track's stream URL, or say why not. Prefers progressive MP3; falls
+ * back to plain (unencrypted) HLS, which the browser plays natively (Safari) or via hls.js.
+ * Encrypted HLS (label/DRM tracks) is never returned: no browser player can decode it here.
+ */
+async function resolveScStream(trackId: string): Promise<{ url: string; hls?: boolean } | { error: string; status: number }> {
   const scClientId = await getSCClientId();
   if (!scClientId) return { error: "No SC client_id available", status: 503 };
   try {
@@ -912,20 +916,24 @@ async function resolveScStream(trackId: string): Promise<{ url: string } | { err
     if (!track) return { error: "Track not found", status: 404 };
 
     // Prefer progressive (MP3) over HLS for maximum Web Audio API compatibility
-    const progressive = track.media?.transcodings?.find(
-      (t: any) => t.format?.protocol === 'progressive' && !t.snipped
-    );
-    if (!progressive) return { error: "No progressive stream available", status: 404 };
+    const transcodings: any[] = track.media?.transcodings ?? [];
+    const progressive = transcodings.find((t) => t.format?.protocol === 'progressive' && !t.snipped);
+    // Plain HLS only ("hls"; the encrypted variants are "ctr-encrypted-hls" etc). MP3 first:
+    // every browser decodes it; AAC (audio/mp4) is next best.
+    const hlsOf = (mime: RegExp) => transcodings.find((t) => t.format?.protocol === 'hls' && mime.test(t.format?.mime_type ?? '') && !t.snipped);
+    const hls = hlsOf(/audio\/mpeg/) ?? hlsOf(/audio\/mp4|aac/);
+    const pick = progressive ?? hls;
+    if (!pick) return { error: "No playable stream available", status: 404 };
 
-    // Resolve transcoding URL → actual CDN URL
+    // Resolve transcoding URL → actual CDN URL (a playlist for HLS)
     const streamRes = await fetch(
-      `${progressive.url}?client_id=${scClientId}`,
+      `${pick.url}?client_id=${scClientId}${track.track_authorization ? `&track_authorization=${track.track_authorization}` : ''}`,
       { signal: AbortSignal.timeout(6000), headers: { 'User-Agent': 'Mozilla/5.0' } }
     );
     if (!streamRes.ok) return { error: "Stream resolve failed", status: 502 };
     const streamData = await streamRes.json();
     if (!streamData.url) return { error: "No stream URL in response", status: 502 };
-    return { url: streamData.url };
+    return pick === progressive ? { url: streamData.url } : { url: streamData.url, hls: true };
   } catch (e) {
     console.log('[SC Stream] error:', e);
     return { error: "Failed to resolve stream", status: 500 };
@@ -936,7 +944,7 @@ app.get("/make-server-715f71b9/sc-stream", async (c) => {
   const trackId = c.req.query("id"); // numeric part of "sc_XXXXXXXX"
   if (!trackId) return c.json({ error: "Missing id" }, 400);
   const r = await resolveScStream(trackId);
-  return "url" in r ? c.json({ url: r.url }) : c.json({ error: r.error }, r.status as any);
+  return "url" in r ? c.json({ url: r.url, ...(r.hls ? { hls: true } : {}) }) : c.json({ error: r.error }, r.status as any);
 });
 
 // Search YouTube directly
@@ -4540,7 +4548,7 @@ async function checkPlayerHealth(): Promise<PlayerHealth> {
   const errors = [...new Set(results.filter((r) => "error" in r).map((r: any) => r.error))];
 
   let status: PlayerHealth["status"] = "healthy";
-  let detail = `Direct streams OK for ${directOk} of ${sample.length} sampled tracks.`;
+  let detail = `Direct streams (MP3 or HLS) OK for ${directOk} of ${sample.length} sampled tracks.`;
   if (massFailures >= 2) {
     status = "down";
     detail = `${massFailures} listeners in the last hour hit 5+ tracks in a row that wouldn't play (the player paused skipping and is retrying).`;
