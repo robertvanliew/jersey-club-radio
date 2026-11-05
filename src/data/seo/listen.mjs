@@ -44,6 +44,19 @@ export const LISTEN = {
       a: 'Producers can submit a SoundCloud link with the Submit your track form on the homepage. Every track that plays credits its producer.',
     },
   ],
+  // Other Jersey club radio shows (verified active Nov 2026), so this page answers
+  // "jersey club radio show" too. Re-check monthly; drop shows that stop airing.
+  showsChecked: '2026-11-05',
+  shows: [
+    { name: 'Club Chronicles w/ UNIIQU3', station: 'NTS Radio', schedule: 'Irregular episodes', url: 'https://www.nts.live/shows/uniiqu3', note: 'An hour of global club music from the Newark-born DJ and producer often called the queen of Jersey club.' },
+    { name: 'Club Paradise w/ 88.', station: 'dublab, Los Angeles', schedule: 'Monthly, second Friday, 10pm to midnight Pacific', url: 'https://www.dublab.com/shows/club-paradise', note: 'A monthly residency built around Baltimore, Jersey and Philly club.' },
+    { name: 'HangTime Radio w/ FLWRSHRK', station: 'Mixcloud (HangTime Music, NYC)', schedule: 'Weekly', url: 'https://www.mixcloud.com/hangtimemusic/', note: 'A long-running NYC show mixing Jersey, Philly and Baltimore club with hip-hop and vogue.' },
+  ],
+  primers: [
+    { name: 'The NTS Guide to Jersey Club', url: 'https://www.nts.live/shows/the-nts-guide-to/episodes/the-nts-guide-to-jersey-club-10th-september-2025', note: 'A one-hour primer of Jersey club classics.' },
+    { name: 'Mixcloud: Jersey club mixes', url: 'https://www.mixcloud.com/genres/jersey-club/', note: 'Thousands of Jersey club DJ mixes.' },
+    { name: 'Kiosk Radio: Jersey club episodes', url: 'https://www.kioskradio.com/genre/jersey-club', note: 'Jersey club sets from the Brussels station.' },
+  ],
   links: [
     ['/', 'Listen live now'],
     ['/hot', 'This week\'s Rising Now chart'],

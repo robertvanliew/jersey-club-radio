@@ -32,6 +32,7 @@ const NewsIndexPage = lazy(() => import('./pages/News').then(m => ({ default: m.
 const ArticlePage = lazy(() => import('./pages/News').then(m => ({ default: m.ArticlePage })));
 const ContactPage = lazy(() => import('./pages/Contact').then(m => ({ default: m.ContactPage })));
 const GuidePage = lazy(() => import('./pages/Guide').then(m => ({ default: m.GuidePage })));
+const BpmTool = lazy(() => import('./pages/BpmTool').then(m => ({ default: m.BpmTool })));
 const ListenPage = lazy(() => import('./pages/Listen').then(m => ({ default: m.ListenPage })));
 const NotFound = lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
 
@@ -68,6 +69,7 @@ export const router = createBrowserRouter([
           { path: 'news/:slug', Component: ArticlePage },
           { path: 'contact', Component: ContactPage },
           { path: 'listen', Component: ListenPage },
+          { path: 'jersey-club-bpm', Component: BpmTool },
           { path: 'what-is-jersey-club', Component: GuidePage },
           { path: 'jersey-club-vs-baltimore-club', Component: GuidePage },
           { path: '*', Component: NotFound },

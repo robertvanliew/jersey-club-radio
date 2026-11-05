@@ -55,6 +55,27 @@ export function ListenPage() {
             </div>
           ))}
         </div>
+      </section>
+
+      <section className="p-5 md:p-6" style={CARD_STYLE} aria-labelledby="other-shows">
+        <h2 id="other-shows" className="text-lg md:text-xl font-black text-white">Other Jersey club radio shows</h2>
+        <p className="text-sm text-[#A99DBF] mt-1">Shows worth catching when they air. Jersey Club Radio is the station to leave on in between.</p>
+        <ul className="flex flex-col gap-4 mt-4">
+          {LISTEN.shows.map(s => (
+            <li key={s.url}>
+              <a href={s.url} target="_blank" rel="noopener" className="text-sm md:text-base font-bold text-[#C77DFF] hover:text-white">{s.name}</a>
+              <p className="text-xs text-[#7B6F90] mt-0.5">{s.station} · {s.schedule}</p>
+              <p className="text-sm text-[#A99DBF] mt-1">{s.note}</p>
+            </li>
+          ))}
+        </ul>
+        <h3 className="text-sm font-bold text-white mt-6">More places to find Jersey club mixes</h3>
+        <ul className="flex flex-col gap-1.5 mt-2">
+          {LISTEN.primers.map(p => (
+            <li key={p.url} className="text-sm text-[#A99DBF]"><a href={p.url} target="_blank" rel="noopener" className="font-semibold text-[#C77DFF] hover:text-white">{p.name}</a>: {p.note}</li>
+          ))}
+        </ul>
+        <p className="text-xs text-[#7B6F90] mt-4">Checked {new Date(LISTEN.showsChecked).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}. Know a show we missed? <Link to="/contact" className="underline hover:text-white">Tell us</Link>.</p>
         <div className="flex flex-wrap gap-x-5 gap-y-2 mt-6 pt-5" style={{ borderTop: '1px solid rgba(157,0,255,0.15)' }}>
           {LISTEN.links.map(([to, label]) => (
             <Link key={to} to={to} className="text-sm font-semibold text-[#C77DFF] hover:text-white">{label} →</Link>

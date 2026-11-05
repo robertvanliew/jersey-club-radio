@@ -20,6 +20,7 @@ import { ROUTE_SEO, artistSeo } from '../src/data/seo/routes.mjs';
 import { bestPeak, badgeSvg } from '../src/data/charts/badge.mjs';
 import { HOME_EXPLAINER } from '../src/data/seo/home.mjs';
 import { LISTEN } from '../src/data/seo/listen.mjs';
+import { BPM_PAGE } from '../src/data/seo/bpm.mjs';
 import { GUIDES } from '../src/data/seo/guides.mjs';
 import { ARTIST_PROFILES, PROFILES_UPDATED } from '../src/data/artists/profiles.mjs';
 
@@ -259,6 +260,8 @@ page({
   body: `<h1>${esc(LISTEN.heading)}</h1><p>${esc(LISTEN.answer)}</p><p><a href="/">Listen live now</a></p>
 <ul>${LISTEN.facts.map(([k, v]) => `<li><strong>${esc(k)}:</strong> ${esc(v)}</li>`).join('')}</ul>
 <h2>Questions about Jersey club radio</h2>${LISTEN.faq.map(f => `<h3>${esc(f.q)}</h3><p>${esc(f.a)}</p>`).join('')}
+<h2>Other Jersey club radio shows</h2><ul>${LISTEN.shows.map(s => `<li><a href="${esc(s.url)}" rel="noopener">${esc(s.name)}</a> (${esc(s.station)}, ${esc(s.schedule)}): ${esc(s.note)}</li>`).join('')}</ul>
+<h3>More places to find Jersey club mixes</h3><ul>${LISTEN.primers.map(p => `<li><a href="${esc(p.url)}" rel="noopener">${esc(p.name)}</a>: ${esc(p.note)}</li>`).join('')}</ul>
 <p>${LISTEN.links.map(([to, label]) => `<a href="${to}">${esc(label)}</a>`).join(' · ')}</p>${SECTION_LINKS}`,
 });
 urls.push({ path: LISTEN.path, lastmod: today, changefreq: 'monthly' });
@@ -286,6 +289,22 @@ ${g.sections.map(s => `<h2>${esc(s.h2)}</h2>${s.body.map(p => `<p>${richHtml(p)}
   });
   urls.push({ path: g.path, lastmod: g.updated, changefreq: 'monthly' });
 }
+
+// ── /jersey-club-bpm: answer + tap tempo tool (the tool itself needs JavaScript) ──
+page({
+  path: BPM_PAGE.path, title: BPM_PAGE.title, description: BPM_PAGE.description,
+  jsonLd: { '@context': 'https://schema.org', '@graph': [
+    { '@type': 'WebApplication', name: 'Jersey Club BPM Tap Tempo Tool', url: SITE_URL + BPM_PAGE.path, applicationCategory: 'MultimediaApplication', operatingSystem: 'Any (web browser)', isAccessibleForFree: true, offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' }, description: BPM_PAGE.description },
+    { '@type': 'FAQPage', mainEntity: BPM_PAGE.faq.map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) },
+  ] },
+  body: `<article><h1>${esc(BPM_PAGE.heading)}</h1><p><small>By <a href="https://robertvanliew.com" rel="author">Robert Van Liew</a> · Last updated ${esc(BPM_PAGE.updated)}</small></p><p>${esc(BPM_PAGE.answer)}</p>
+<ul>${BPM_PAGE.ranges.map(([k, v]) => `<li><strong>${esc(k)}:</strong> ${esc(v)}</li>`).join('')}</ul>
+<h2>Find any song's BPM</h2><p>Tap along to the beat with the free tap tempo tool on this page, then convert the song to Jersey club tempo.</p>
+<h2>Common questions</h2>${BPM_PAGE.faq.map(f => `<h3>${esc(f.q)}</h3><p>${esc(f.a)}</p>`).join('')}
+<h2>Sources</h2><ul>${BPM_PAGE.sources.map(s => `<li><a href="${esc(s.url)}" rel="noopener">${esc(s.name)}</a></li>`).join('')}</ul>
+<p>${BPM_PAGE.related.map(([to, label]) => `<a href="${to}">${esc(label)}</a>`).join(' · ')}</p></article>${SECTION_LINKS}`,
+});
+urls.push({ path: BPM_PAGE.path, lastmod: BPM_PAGE.updated, changefreq: 'monthly' });
 
 // ── 404.html: Vercel serves it, with a 404 status, for any path with no file ──
 page({
@@ -324,7 +343,8 @@ ${md(e.definition)}
 
 ## Key pages
 - [Listen live](${SITE_URL}/): The 24/7 Jersey club radio stream
-- [24/7 Jersey club radio station](${SITE_URL}/listen): What the station is, how to listen, FAQ
+- [24/7 Jersey club radio station](${SITE_URL}/listen): What the station is, how to listen, other Jersey club radio shows
+- [Jersey club BPM](${SITE_URL}/jersey-club-bpm): Tempo range (about 130 to 140 BPM) and a free tap tempo tool
 ${GUIDES.map(g => `- [${md(g.heading)}](${SITE_URL}${g.path}): ${md(g.description)}`).join('\n')}
 - [Rising Now chart](${SITE_URL}/hot): The fastest-rising new Jersey club tracks, updated every Monday
 - [Chart archive](${SITE_URL}/hot/archive): Every past week of the Rising Now chart
