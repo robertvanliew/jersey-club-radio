@@ -1,0 +1,25 @@
+# Checks every 30 minutes that the radio can actually stream music. The server emails
+# ALERT_EMAIL when the player's health changes (and when it recovers); this job also
+# fails (GitHub emails the repo owner) if the player is down or the check can't run.
+name: Player health
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check player health
+        env:
+          URL: https://jzsuxntewgderdhzdbeh.supabase.co/functions/v1/make-server-715f71b9/player/health
+        run: |
+          code=$(curl -s -o health.json -w '%{http_code}' --max-time 60 "$URL")
+          cat health.json; echo
+          echo "HTTP $code"
+          status=$(grep -o '"status":"[a-z]*"' health.json | head -1 | cut -d'"' -f4)
+          echo "### Player: ${status:-unknown}" >> "$GITHUB_STEP_SUMMARY"
+          [ "$code" = 200 ] || { echo "::error::Player health check failed (HTTP $code, status ${status:-unknown})"; exit 1; }

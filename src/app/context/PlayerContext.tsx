@@ -16,6 +16,8 @@ import {
 import { addRecent, recentIds, parseRecent, pickNextIndex, RECENT_MAX, type RecentPlays } from '../lib/recentPlays';
 
 const RECENT_KEY = 'jcr-recent-plays';
+const MAX_FAIL_STREAK = 5;        // tracks failing back to back before the player stops skipping
+const RETRY_AFTER_MS = 60_000;    // then it waits this long and tries again
 const loadRecent = (): RecentPlays => { try { return parseRecent(localStorage.getItem(RECENT_KEY)); } catch { return []; } };
 const saveRecent = (list: RecentPlays) => { try { localStorage.setItem(RECENT_KEY, JSON.stringify(list)); } catch { } };
 
@@ -269,6 +271,13 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   // deck that can play (see onPlayBlockedRef) instead of leaving the station silent.
   const deckUnlockedRef = useRef<Record<DeckId, boolean>>({ A: false, B: false });
   const onPlayBlockedRef = useRef<(deck: DeckId) => void>(() => { });
+  // Circuit breaker: tracks that failed in a row with nothing playing in between. If many
+  // fail back to back the problem is the source (e.g. SoundCloud changed something), not
+  // the tracks, so stop skipping (which flickered through every title) and retry later.
+  const failStreakRef = useRef(0);
+  const onTrackPlayingRef = useRef<() => void>(() => { });
+  const requestEmbedsRef = useRef<() => void>(() => { });
+  const reportPlayerIssueRef = useRef<(kind: string) => void>(() => { });
   const mixBlockedRef = useRef(false);
   // The track a mix started from, to restore the UI if the mix is called off late
   const mixFromRef = useRef<{ track: Track; index: number } | null>(null);
@@ -562,10 +571,26 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       deckReadyRef.current[deck] = false;
       deckWantsPlayRef.current[deck] = autoPlay;
 
-      const loadWidget = () => {
+      // The track really can't be played anywhere: skip it (the circuit breaker in
+      // onUnplayable stops this turning into a skip loop if everything fails)
+      const giveUp = (why: string) => {
+        if (isStale()) return;
+        unplayableRef.current.add(track.id.videoId);
+        console.warn(`[SC] "${track.snippet.title}" won't play (${why}) — skipping`);
+        onUnplayableRef.current(deck, track);
+      };
+
+      const loadWidget = (attempt = 0) => {
+        if (isStale()) return;
         deckMode.current = 'widget';
         const widget = getScWidget(deck);
-        if (!widget) return;
+        if (!widget) {
+          // The embedded players load on first interaction: ask for them and wait
+          requestEmbedsRef.current();
+          if (attempt < 40) setTimeout(() => loadWidget(attempt + 1), 500);
+          else giveUp('embedded player unavailable');
+          return;
+        }
         widget.load(track.soundcloudUrl, {
           auto_play: autoPlay,
           show_artwork: false,
@@ -577,6 +602,21 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
             if (!autoPlay && deckWantsPlayRef.current[deck]) { try { widget.play(); } catch { } }
           },
         });
+        // Watchdog: once this deck is meant to be playing, it must actually move. A track
+        // the widget can't play (label/DRM restricted) just sits at 0:00.
+        const watch = (checks = 0) => setTimeout(() => {
+          if (isStale() || deckMode.current !== 'widget') return;
+          if (!deckWantsPlayRef.current[deck]) { if (checks < 120) watch(checks + 1); return; }
+          try {
+            widget.getPosition((pos: number) => {
+              if (isStale()) return;
+              if (pos > 0) { onTrackPlayingRef.current(); return; }
+              if (checks >= 4) giveUp('embedded player stuck at 0:00');
+              else watch(checks + 1);
+            });
+          } catch { giveUp('embedded player error'); }
+        }, 2500);
+        watch();
       };
 
       // ── Primary: native <audio> + Web Audio API normalization ──────────
@@ -592,6 +632,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
             if (!data.url) throw new Error(data.error || 'No stream URL');
             audio.src = data.url;
             deckReadyRef.current[deck] = true;
+            audio.addEventListener('playing', () => { if (!isStale()) onTrackPlayingRef.current(); }, { once: true });
             if (deckWantsPlayRef.current[deck]) {
               // Resume AudioContext — required after any user-gesture gap
               if (audioCtxRef.current?.state === 'suspended') audioCtxRef.current.resume();
@@ -601,17 +642,12 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
           })
           .catch(err => {
             if (isStale()) return;
-            // ── Fallback: SC Widget (cross-origin iframe, no normalization) ──
-            // Needed for label-monetized tracks that SC only serves as DRM-encrypted HLS
-            // Label-restricted tracks: SoundCloud serves them only as DRM streams and the
-            // widget 404s on them too, so no embed can play them. Skip instead of stalling.
-            if (/Stream resolve failed|No progressive stream/.test(String(err?.message))) {
-              unplayableRef.current.add(track.id.videoId);
-              console.warn(`[SC Native] "${track.snippet.title}" can only be played on SoundCloud — skipping`);
-              onUnplayableRef.current(deck, track);
-              return;
-            }
-            console.warn('[SC Native] stream URL failed, using Widget fallback:', err);
+            // ── Fallback: the official SoundCloud embedded player (no EQ Mix / normalization) ──
+            // No direct stream doesn't mean the track can't play: SoundCloud may only offer
+            // other stream formats. The embed plays those; its watchdog skips the track only
+            // if the embed can't play it either (label/DRM-restricted tracks).
+            console.warn(`[SC Native] no direct stream for "${track.snippet.title}" (${err?.message}); using the embedded player`);
+            reportPlayerIssueRef.current('no-direct-stream');
             loadWidget();
           });
       } else {
@@ -886,6 +922,26 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   // A track turned out to be unplayable (SoundCloud-only): move past it
   useEffect(() => {
     onUnplayableRef.current = (deck: DeckId, track: Track) => {
+      failStreakRef.current++;
+      if (failStreakRef.current >= MAX_FAIL_STREAK) {
+        // Many tracks in a row: the source is down, not the tracks. Stop and retry later.
+        if (failStreakRef.current === MAX_FAIL_STREAK) {
+          console.error(`[Player] ${MAX_FAIL_STREAK} tracks in a row failed to play; pausing skips and retrying in ${RETRY_AFTER_MS / 1000}s`);
+          reportPlayerIssueRef.current('mass-failure');
+          toast('Having trouble reaching the music source. Reconnecting…', { id: 'jc-reconnecting', duration: RETRY_AFTER_MS });
+          cancelCrossfade();
+          setTimeout(() => {
+            failStreakRef.current = 0;
+            unplayableRef.current.clear();
+            const t = currentTrackRef.current;
+            if (t) {
+              console.log('[Player] Retrying playback after a run of failures');
+              loadOnDeck(activeDeckRef.current, t, true, masterVolumeRef.current);
+            }
+          }, RETRY_AFTER_MS);
+        }
+        return;
+      }
       if (isCrossfadingRef.current && incomingDeckRef.current === deck) {
         // Next track in a mix is unplayable: abort the mix; the progress timer
         // immediately starts a new one into the following playable track
@@ -936,6 +992,22 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   // so with them loaded the page never goes network-idle. Neither is needed before the
   // visitor interacts (native audio plays SoundCloud tracks), so load them on first input.
   const [embedsWanted, setEmbedsWanted] = useState(false);
+  requestEmbedsRef.current = () => setEmbedsWanted(true);
+  onTrackPlayingRef.current = () => { failStreakRef.current = 0; };
+  // Tell the server about playback problems (feeds the health alert); each kind at most
+  // once per 10 minutes per visitor
+  const issueSentRef = useRef<Record<string, number>>({});
+  reportPlayerIssueRef.current = (kind: string) => {
+    const now = Date.now();
+    if (now - (issueSentRef.current[kind] ?? 0) < 10 * 60_000) return;
+    issueSentRef.current[kind] = now;
+    fetch(`${BASE}/player/issue`, {
+      method: 'POST',
+      headers: { ...HEADERS, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind, track: currentTrackRef.current?.id.videoId ?? null }),
+      keepalive: true,
+    }).catch(() => { });
+  };
   useEffect(() => {
     const events = ['pointerdown', 'keydown', 'touchstart'] as const;
     const want = () => setEmbedsWanted(true);

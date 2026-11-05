@@ -896,42 +896,47 @@ app.post("/make-server-715f71b9/tracks/more", async (c) => {
 // Resolve a SoundCloud track to a fresh progressive MP3 stream URL.
 // Called by the client just before playback — CDN URLs are time-limited so we
 // always fetch a fresh one rather than caching.
-app.get("/make-server-715f71b9/sc-stream", async (c) => {
-  const trackId = c.req.query("id"); // numeric part of "sc_XXXXXXXX"
-  if (!trackId) return c.json({ error: "Missing id" }, 400);
+/** Resolve a SoundCloud track's direct (progressive MP3) stream URL, or say why not. */
+async function resolveScStream(trackId: string): Promise<{ url: string } | { error: string; status: number }> {
   const scClientId = await getSCClientId();
-  if (!scClientId) return c.json({ error: "No SC client_id available" }, 503);
+  if (!scClientId) return { error: "No SC client_id available", status: 503 };
   try {
     // Fetch track object (includes media.transcodings)
     const trackRes = await fetch(
       `https://api-v2.soundcloud.com/tracks?ids=${trackId}&client_id=${scClientId}`,
       { signal: AbortSignal.timeout(6000), headers: { 'User-Agent': 'Mozilla/5.0' } }
     );
-    if (!trackRes.ok) return c.json({ error: "SC API error" }, 502);
+    if (!trackRes.ok) return { error: "SC API error", status: 502 };
     const tracks = await trackRes.json();
     const track = Array.isArray(tracks) ? tracks[0] : null;
-    if (!track) return c.json({ error: "Track not found" }, 404);
+    if (!track) return { error: "Track not found", status: 404 };
 
     // Prefer progressive (MP3) over HLS for maximum Web Audio API compatibility
     const progressive = track.media?.transcodings?.find(
       (t: any) => t.format?.protocol === 'progressive' && !t.snipped
     );
-    if (!progressive) return c.json({ error: "No progressive stream available" }, 404);
+    if (!progressive) return { error: "No progressive stream available", status: 404 };
 
     // Resolve transcoding URL → actual CDN URL
     const streamRes = await fetch(
       `${progressive.url}?client_id=${scClientId}`,
       { signal: AbortSignal.timeout(6000), headers: { 'User-Agent': 'Mozilla/5.0' } }
     );
-    if (!streamRes.ok) return c.json({ error: "Stream resolve failed" }, 502);
+    if (!streamRes.ok) return { error: "Stream resolve failed", status: 502 };
     const streamData = await streamRes.json();
-    if (!streamData.url) return c.json({ error: "No stream URL in response" }, 502);
-
-    return c.json({ url: streamData.url });
+    if (!streamData.url) return { error: "No stream URL in response", status: 502 };
+    return { url: streamData.url };
   } catch (e) {
     console.log('[SC Stream] error:', e);
-    return c.json({ error: "Failed to resolve stream" }, 500);
+    return { error: "Failed to resolve stream", status: 500 };
   }
+}
+
+app.get("/make-server-715f71b9/sc-stream", async (c) => {
+  const trackId = c.req.query("id"); // numeric part of "sc_XXXXXXXX"
+  if (!trackId) return c.json({ error: "Missing id" }, 400);
+  const r = await resolveScStream(trackId);
+  return "url" in r ? c.json({ url: r.url }) : c.json({ error: r.error }, r.status as any);
 });
 
 // Search YouTube directly
@@ -4498,6 +4503,96 @@ app.post("/make-server-715f71b9/admin/artist-photo/:slug", async (c: any) => {
     console.log('[ArtistPhoto] Error:', e);
     return c.json({ error: String(e) }, 500);
   }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  PLAYER HEALTH MONITOR
+//  - POST /player/issue: players report problems (each kind at most every 10 min per
+//    visitor). Counts are kept for the last hour; "mass-failure" (5+ tracks in a row
+//    wouldn't play) triggers a health check right away.
+//  - GET /player/health: tests direct streams for a sample of tracks. Run every 30 min by
+//    .github/workflows/player-health.yml. Emails ALERT_EMAIL when health changes
+//    (healthy → degraded/down and back), never more than once per change.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const PLAYER_ISSUE_KINDS = ["mass-failure", "no-direct-stream"] as const;
+const HOUR_MS = 3_600_000;
+
+type PlayerHealth = { status: "healthy" | "degraded" | "down"; directOk: number; sampled: number; issuesLastHour: Record<string, number>; checkedAt: number; detail: string };
+
+async function recentIssues(): Promise<Record<string, number[]>> {
+  const all: Record<string, number[]> = ((await kv.get("player_issues_v1")) as any) || {};
+  const cutoff = Date.now() - HOUR_MS;
+  for (const k of Object.keys(all)) all[k] = (all[k] || []).filter((t) => t > cutoff);
+  return all;
+}
+
+async function checkPlayerHealth(): Promise<PlayerHealth> {
+  const playlist: any[] = ((await kv.get("jc_tracks_v2")) as any[]) || [];
+  const ids = playlist.map((t) => t?.id?.videoId).filter((v) => typeof v === "string" && v.startsWith("sc_"));
+  // A random sample: a handful of label-restricted tracks never have a direct stream
+  const sample = ids.sort(() => Math.random() - 0.5).slice(0, 6);
+  const results = await Promise.all(sample.map((id) => resolveScStream(id.slice(3))));
+  const directOk = results.filter((r) => "url" in r).length;
+  const issues = await recentIssues();
+  const issuesLastHour = Object.fromEntries(Object.entries(issues).map(([k, v]) => [k, v.length]));
+  const massFailures = issuesLastHour["mass-failure"] || 0;
+  const errors = [...new Set(results.filter((r) => "error" in r).map((r: any) => r.error))];
+
+  let status: PlayerHealth["status"] = "healthy";
+  let detail = `Direct streams OK for ${directOk} of ${sample.length} sampled tracks.`;
+  if (massFailures >= 2) {
+    status = "down";
+    detail = `${massFailures} listeners in the last hour hit 5+ tracks in a row that wouldn't play (the player paused skipping and is retrying).`;
+  } else if (sample.length && directOk === 0) {
+    status = "degraded";
+    detail = `No direct streams for any of ${sample.length} sampled tracks (${errors.join(", ")}). Listeners are on the SoundCloud embedded-player fallback: music plays, but without EQ Mix or volume normalization.`;
+  }
+  return { status, directOk, sampled: sample.length, issuesLastHour, checkedAt: Date.now(), detail };
+}
+
+/** Run a check, store it, and email when the status changed since the last check */
+async function runPlayerHealth(): Promise<PlayerHealth> {
+  const h = await checkPlayerHealth();
+  const prev: any = (await kv.get("player_health_v1")) || { status: "healthy" };
+  await kv.set("player_health_v1", h);
+  if (prev.status !== h.status) {
+    const bad = h.status !== "healthy";
+    await sendEmail({
+      to: ALERT_EMAIL,
+      subject: bad ? `Jersey Club Radio player ${h.status.toUpperCase()}` : "Jersey Club Radio player recovered",
+      html: emailShell(bad ? `Player ${h.status}` : "Player recovered",
+        row("Status", `${prev.status} → ${h.status}`) + row("Detail", h.detail) +
+        row("Issue reports (last hour)", JSON.stringify(h.issuesLastHour)) +
+        `<p>Check it live at <a href="https://jerseyclubradio.com">jerseyclubradio.com</a>. Current status: ${SITE_HEALTH_URL}</p>`),
+    });
+    console.log(`[Health] player ${prev.status} → ${h.status}: ${h.detail}`);
+  }
+  return h;
+}
+const SITE_HEALTH_URL = "https://jzsuxntewgderdhzdbeh.supabase.co/functions/v1/make-server-715f71b9/player/health";
+
+app.post("/make-server-715f71b9/player/issue", async (c) => {
+  try {
+    const { kind } = await c.req.json();
+    if (!(PLAYER_ISSUE_KINDS as readonly string[]).includes(kind)) return c.json({ error: "Unknown kind" }, 400);
+    if (!(await underDailyLimit(c, `player-issue-${kind}`, 30))) return c.json({ status: "ok" });
+    const issues = await recentIssues();
+    issues[kind] = [...(issues[kind] || []), Date.now()].slice(-500);
+    await kv.set("player_issues_v1", issues);
+    if (kind === "mass-failure") await runPlayerHealth();
+    return c.json({ status: "ok" });
+  } catch (e) {
+    console.log("[Health] issue report error:", e);
+    return c.json({ status: "ok" });
+  }
+});
+
+app.get("/make-server-715f71b9/player/health", async (c) => {
+  // Fresh check at most every 5 minutes; otherwise the stored result
+  const last: any = await kv.get("player_health_v1");
+  const h = last && Date.now() - last.checkedAt < 5 * 60_000 && !c.req.query("force") ? last : await runPlayerHealth();
+  return c.json(h, h.status === "down" ? 503 : 200);
 });
 
 Deno.serve(app.fetch);
