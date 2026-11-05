@@ -23,6 +23,7 @@ import { LISTEN } from '../src/data/seo/listen.mjs';
 import { BPM_PAGE } from '../src/data/seo/bpm.mjs';
 import { KICK_PAGE } from '../src/data/seo/kickPattern.mjs';
 import { SQUEAK_PAGE } from '../src/data/seo/bedSqueak.mjs';
+import { KITS_PAGE } from '../src/data/seo/drumKits.mjs';
 import { BEST_SONGS, sourceLabel } from '../src/data/seo/bestSongs.mjs';
 import { GUIDES } from '../src/data/seo/guides.mjs';
 import { ARTIST_PROFILES, PROFILES_UPDATED } from '../src/data/artists/profiles.mjs';
@@ -357,6 +358,26 @@ ${SQUEAK_PAGE.sections.map(s => `<h2>${esc(s.h2)}</h2>${s.body.map(x => `<p>${ri
 });
 urls.push({ path: SQUEAK_PAGE.path, lastmod: SQUEAK_PAGE.updated, changefreq: 'monthly' });
 
+// ── /free-jersey-club-drum-kits: hand-checked directory ──
+{
+  const all = KITS_PAGE.groups.flatMap(g => g.kits);
+  page({
+    path: KITS_PAGE.path, title: KITS_PAGE.title, description: KITS_PAGE.description,
+    jsonLd: { '@context': 'https://schema.org', '@graph': [
+      { '@type': 'CollectionPage', name: KITS_PAGE.heading, description: KITS_PAGE.description, url: SITE_URL + KITS_PAGE.path, dateModified: KITS_PAGE.checked, author: authorJsonLd('Robert Van Liew'),
+        mainEntity: { '@type': 'ItemList', numberOfItems: all.length, itemListElement: all.map((k, i) => ({ '@type': 'ListItem', position: i + 1, name: k.name, url: k.url })) } },
+      { '@type': 'FAQPage', mainEntity: KITS_PAGE.faq.map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) },
+    ] },
+    body: `<article><h1>${esc(KITS_PAGE.heading)}</h1><p><small>By <a href="https://robertvanliew.com" rel="author">Robert Van Liew</a> · Links and licenses checked ${esc(KITS_PAGE.checked)}</small></p><p>${esc(KITS_PAGE.answer)}</p>
+<h2>Free from Jersey Club Radio</h2><ul>${KITS_PAGE.ours.map(([to, name, desc]) => `<li><a href="${to}">${esc(name)}</a>: ${esc(desc)}</li>`).join('')}</ul>
+${KITS_PAGE.groups.map(g => `<h2>${esc(g.name)}</h2><p>${esc(g.intro)}</p><ul>${g.kits.map(k => `<li><a href="${esc(k.url)}" rel="noopener nofollow">${esc(k.name)}</a> by ${esc(k.creator)} (${esc(k.price)}). ${esc(k.contents)} License: ${esc(k.license)}</li>`).join('')}</ul>`).join('')}
+<h2>How to spot fake "free Jersey club kit" pages</h2><ul>${KITS_PAGE.warnings.map(w => `<li>${esc(w)}</li>`).join('')}</ul>
+<h2>Common questions</h2>${KITS_PAGE.faq.map(f => `<h3>${esc(f.q)}</h3><p>${esc(f.a)}</p>`).join('')}
+<p>${KITS_PAGE.related.map(([to, label]) => `<a href="${to}">${esc(label)}</a>`).join(' · ')}</p></article>${SECTION_LINKS}`,
+  });
+  urls.push({ path: KITS_PAGE.path, lastmod: KITS_PAGE.checked, changefreq: 'monthly' });
+}
+
 // ── 404.html: Vercel serves it, with a 404 status, for any path with no file ──
 page({
   path: '/404', file: '404.html', noindex: true, jsonLd: null,
@@ -396,6 +417,7 @@ ${md(e.definition)}
 - [Listen live](${SITE_URL}/): The 24/7 Jersey club radio stream
 - [24/7 Jersey club radio station](${SITE_URL}/listen): What the station is, how to listen, other Jersey club radio shows
 - [Best Jersey club songs](${SITE_URL}/best-jersey-club-songs): 49 essential Jersey club songs by era, each with why it matters and sources
+- [Free Jersey club drum kits](${SITE_URL}/free-jersey-club-drum-kits): Hand-checked free kits and sample packs with the license for each, and how to avoid fake download pages
 - [Jersey club bed squeak](${SITE_URL}/jersey-club-bed-squeak): Where the squeak comes from (Trillville's "Some Cut", 2004) and free original Jersey club sounds
 - [Jersey club kick pattern](${SITE_URL}/jersey-club-kick-pattern): The classic kick pattern (steps 1, 5, 9, 12, 15), playable, with free MIDI and WAV downloads
 - [Jersey club BPM](${SITE_URL}/jersey-club-bpm): Tempo range (about 130 to 140 BPM) and a free tap tempo tool

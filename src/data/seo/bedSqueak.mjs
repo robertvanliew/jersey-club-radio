@@ -36,5 +36,5 @@ export const SQUEAK_PAGE = {
     { name: 'VICE/THUMP: Jersey club documentary, part one (2014)', url: 'https://www.vice.com/en/article/check-out-part-one-of-our-jersey-club-documentary-series-presented-by-sengled/' },
     { name: 'XXL: Jersey club music', url: 'https://www.xxlmag.com/jersey-club-music/' },
   ],
-  related: [['/jersey-club-kick-pattern', 'Jersey club kick pattern + free MIDI'], ['/jersey-club-bpm', 'Jersey club BPM tool'], ['/what-is-jersey-club', 'What is Jersey club?'], ['/listen', 'Listen to Jersey club 24/7']],
+  related: [['/free-jersey-club-drum-kits', 'Free Jersey club drum kits'], ['/jersey-club-kick-pattern', 'Jersey club kick pattern + free MIDI'], ['/jersey-club-bpm', 'Jersey club BPM tool'], ['/what-is-jersey-club', 'What is Jersey club?'], ['/listen', 'Listen to Jersey club 24/7']],
 };

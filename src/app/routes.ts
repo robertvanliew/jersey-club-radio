@@ -36,6 +36,7 @@ const BpmTool = lazy(() => import('./pages/BpmTool').then(m => ({ default: m.Bpm
 const BestSongs = lazy(() => import('./pages/BestSongs').then(m => ({ default: m.BestSongs })));
 const KickPattern = lazy(() => import('./pages/KickPattern').then(m => ({ default: m.KickPattern })));
 const BedSqueak = lazy(() => import('./pages/BedSqueak').then(m => ({ default: m.BedSqueak })));
+const DrumKits = lazy(() => import('./pages/DrumKits').then(m => ({ default: m.DrumKits })));
 const ListenPage = lazy(() => import('./pages/Listen').then(m => ({ default: m.ListenPage })));
 const NotFound = lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
 
@@ -79,6 +80,7 @@ export const router = createBrowserRouter([
           { path: 'best-jersey-club-songs', Component: BestSongs },
           { path: 'jersey-club-kick-pattern', Component: KickPattern },
           { path: 'jersey-club-bed-squeak', Component: BedSqueak },
+          { path: 'free-jersey-club-drum-kits', Component: DrumKits },
           { path: '*', Component: NotFound },
         ],
       },
