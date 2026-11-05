@@ -72,6 +72,7 @@ export const router = createBrowserRouter([
           { path: 'jersey-club-bpm', Component: BpmTool },
           { path: 'what-is-jersey-club', Component: GuidePage },
           { path: 'jersey-club-vs-baltimore-club', Component: GuidePage },
+          { path: 'jersey-club-dances', Component: GuidePage },
           { path: '*', Component: NotFound },
         ],
       },

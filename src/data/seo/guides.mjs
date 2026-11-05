@@ -128,6 +128,67 @@ export const GUIDES = [
     sources: [SOURCES.wikiBmore, SOURCES.wikiJersey, SOURCES.djmag, SOURCES.xxl],
     related: [['/what-is-jersey-club', 'What is Jersey club?'], ['/listen', 'Listen to Jersey club radio 24/7'], ['/news/history-of-jersey-club-music', 'The history of Jersey club']],
   },
+  {
+    path: '/jersey-club-dances',
+    title: 'Jersey Club Dances: Running Man, Sexy Walk, Bunny Hop and More',
+    description: 'A guide to Jersey club dances: the Running Man, Sexy Walk, Pattycake, Bunny Hop, the Tang and the TikTok-era dances, with who made them famous and the songs behind them.',
+    heading: 'Jersey club dances',
+    updated: '2026-11-05',
+    answer: 'Jersey club dances are the party moves that grew up with Newark\'s club sound. The Running Man is the base step most others build on. Around it sit the Sexy Walk, the Pattycake, the Slide, the Bunny Hop and Rock Your Hips, plus older party dances like Lock It Up and TikTok-era challenges like the "Just Wanna Rock" dance.',
+    facts: [
+      ['Base step', 'The Running Man'],
+      ['First move credited to a woman', 'The Sexy Walk (originated by Ashley Ford, per The Gumbo)'],
+      ['Where dances spread', 'Newark teen parties, skating rinks, school cafeterias, then YouTube, Vine and TikTok'],
+      ['Biggest viral moments', 'Running Man Challenge (2016), "Vibe (If I Back It Up)" (2020), "Just Wanna Rock" (2022)'],
+    ],
+    sections: [
+      { h2: 'Why is dance so central to Jersey club?', body: [
+        'Jersey club grew on the dance floor as much as in the studio. Dance Mogul Magazine puts it simply: Jersey club "did not become a culture because people simply listened to it. They danced to it." DJs called out moves on the mic all night, and some records are named after a move, like "Sexy Walk" and "Bunny Hop."',
+        'Dance also gave Newark\'s young people a place to compete. Skating rinks like Branch Brook and Skate 22, school cafeterias and teen parties were the stages, and dance battles became central. The Gumbo writes that self-taught dancers drove Jersey club\'s spread on social media, with kids learning the newest moves on YouTube before a party.',
+      ] },
+      { h2: 'What is the Running Man?', body: [
+        'The Running Man is the base step of Jersey club dancing. Dancers bend their knees and rock their feet back and forth in a running motion, and The FADER notes that almost every other Jersey club move either starts with it or is combined with it. [DJ Lilman](/artists/djlilman) says it came out of a Newark party in late 2009 and that he named it a few days later.',
+        'In 2016 Kevin Vincent and Jerry Hall from Hillside, New Jersey turned it into the Running Man Challenge, which went viral worldwide. They started the challenge, not the dance.',
+      ] },
+      { h2: 'What is the Sexy Walk?', body: [
+        'The Sexy Walk is a confident strut that The Gumbo describes as a blend of Harlem\'s heel-toe and Chuck Berry\'s duck walk, with neck snaps and head rolls. The Gumbo credits Ashley Ford with originating it and Miss CTE with popularizing it, and calls it the first Jersey club move created by and credited to a woman.',
+        'It has its own anthem: "Sexy Walk" by DJ Lilman and [Ms. Porsh](/artists/msporsh), which The FADER covered in 2010, calling the dance "a proper, super-popular dance in Jerz."',
+      ] },
+      { h2: 'What are the Pattycake, the Slide and Rock Your Hips?', body: [
+        'These are moves dancers mix with the Running Man. The Pattycake keeps the Running Man footwork and adds patty-cake style hand clapping. The FADER also names the Slide and Rock Your Hips among the Jersey-born moves that combine with it. Producer Kayy Drizz lists the Patty Cake, the Running Man and the Sharp Bounce among the dances of his era.',
+      ] },
+      { h2: 'What is the Jersey club Bunny Hop?', body: [
+        'The Jersey club Bunny Hop is a dance from DJ Lilman\'s 2012 record "Bunny Hop," featuring K-Shiz, which was billed as a brand new dance. It is a different dance from the 1950s Bunny Hop. The FADER lists it among the moves dancers mix with the Running Man.',
+      ] },
+      { h2: 'What is the Tang?', body: [
+        'The Tang is a club dance with Philadelphia roots that Jersey club dancers also do. Philadelphia magazine describes gyrating hips and warrior-style arm crosses, and calls it a good move for a dance-off. It has nothing to do with the rap group. More on it in [the Tang dance and Jersey club dance culture](/news/tang-dance-jersey-drill-dance-culture).',
+      ] },
+      { h2: 'Which older party dances came before?', body: [
+        'Before the Running Man era, Newark house parties had dances like Lock It Up (also called Stolen Car) and the Wall, remembered by dancer Anthony "Solo" Harris and [DJ Tameil](/artists/djtameil). Dance Mogul also lists the Percolator and One Leg Get Back as part of the wider Jersey club dance vocabulary, and Wikipedia notes that Tim Dolla\'s track "Swing Dat" is named after a popular move.',
+      ] },
+      { h2: 'What are the TikTok-era Jersey club dances?', body: [
+        'Cookiee Kawaii\'s "Vibe (If I Back It Up)" became, in Dance Mogul\'s words, "a major TikTok dance phenomenon in 2020." In fall 2022 the "Just Wanna Rock" dance took off on TikTok after creators posted it on September 14, 2022, with Kai Cenat helping it spread. Know Your Meme describes side-stepping, cross-stepping and hip-shaking, similar to the Blick, a Philly club move. Read [the story behind "Just Wanna Rock"](/news/just-wanna-rock-mcvertt-jersey-club).',
+      ] },
+    ],
+    faq: [
+      { q: 'What is the most famous Jersey club dance?', a: 'The Running Man. It is the base step most Jersey club moves are built on, and the 2016 Running Man Challenge made it famous worldwide.' },
+      { q: 'How do you dance to Jersey club?', a: 'Start with the Running Man: knees bent, feet rocking back and forth in a running motion on the beat. Then add moves like the Pattycake (claps), the Slide or Rock Your Hips, and save bigger moves for the breaks in the track.' },
+      { q: 'Who created the Sexy Walk?', a: 'The Gumbo credits Ashley Ford with originating the Sexy Walk and Miss CTE with popularizing it. DJ Lilman and Ms. Porsh made the song "Sexy Walk" around it.' },
+      { q: 'Where can I hear Jersey club music to dance to?', a: 'Jersey Club Radio plays Jersey club 24/7 for free at jerseyclubradio.com, and the Rising Now chart lists the newest tracks every Monday.' },
+    ],
+    sources: [
+      { name: 'The FADER: The Real Story Behind The Running Man Challenge (2016)', url: 'https://www.thefader.com/2016/05/06/real-story-behind-the-running-man-challenge' },
+      { name: 'The FADER: DJ Lilman & Ms. Porsh, "Sexy Walk" (2010)', url: 'https://www.thefader.com/2010/07/27/dj-lilman-ms-porsh-sexy-walk-mp3' },
+      { name: 'The Gumbo: The Unsung Women Innovators of Jersey Club Music (2021)', url: 'https://thegumbo.net/blog/2021/1/4/the-unsung-women-innovators-of-jersey-club-music' },
+      { name: 'Dance Mogul Magazine: What Is Jersey Club? The Dancer Perspective (2019)', url: 'https://www.dancemogul.com/?p=14815' },
+      { name: 'Dance Mogul Magazine: 25 Years of Jersey Club (2026)', url: 'https://www.dancemogul.com/25-years-of-jersey-club/' },
+      { name: 'Mixcloud: On Rotation, A Guide to Jersey Club (2023)', url: 'https://www.mixcloud.com/blog/2023/07/05/mixclouds-on-rotation-a-guide-to-jersey-club/' },
+      { name: 'Philadelphia magazine: Popular Dance Moves With Philly Roots (2020)', url: 'https://www.phillymag.com/things-to-do/2020/03/07/dance-moves-philadelphia/' },
+      { name: 'Know Your Meme: Lil Uzi Vert "Just Wanna Rock" Dance', url: 'https://knowyourmeme.com/memes/lil-uzi-vert-just-wanna-rock-dance' },
+      { name: 'Wikipedia: Jersey club', url: 'https://en.wikipedia.org/wiki/Jersey_club' },
+    ],
+    related: [['/dance-videos', 'Watch Jersey club dance videos'], ['/what-is-jersey-club', 'What is Jersey club?'], ['/listen', 'Listen to Jersey club 24/7']],
+  },
 ];
 
 export const guideByPath = path => GUIDES.find(g => g.path === path);
