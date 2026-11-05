@@ -17,6 +17,7 @@ import {
 } from '../src/data/charts/chartUtils.mjs';
 import { publishedArticles, inlineSegments, articleJsonLd, shareLinks, AUTHORS, authorJsonLd } from '../src/data/news/newsUtils.mjs';
 import { ROUTE_SEO, artistSeo } from '../src/data/seo/routes.mjs';
+import { bestPeak, badgeSvg } from '../src/data/charts/badge.mjs';
 import { HOME_EXPLAINER } from '../src/data/seo/home.mjs';
 import { LISTEN } from '../src/data/seo/listen.mjs';
 import { GUIDES } from '../src/data/seo/guides.mjs';
@@ -132,12 +133,16 @@ if (published.length) {
   for (const slug of slugs) {
     const h = producerHistory(published, slug);
     const path = `/producers/${slug}`;
+    // Embeddable "Charted on Jersey Club Radio" badge (links back to this page)
+    const peak = bestPeak(h);
+    mkdirSync(join(DIST, 'badges'), { recursive: true });
+    writeFileSync(join(DIST, 'badges', `${slug}.svg`), badgeSvg({ name: h.name, rank: peak.rank, week: peak.week }));
     urls.push({ path: page({
       path,
       title: `${h.name}: Jersey Club Producer Chart History | Jersey Club Radio`,
       description: `${h.name} has ${h.tracks.length} track${h.tracks.length === 1 ? '' : 's'} on Jersey Club Radio's Rising Now chart, including ${h.tracks[0].title} (peak #${h.tracks[0].bestRank}).`,
       jsonLd: producerJsonLd(h, path),
-      body: `<h1>${esc(h.name)}</h1><p>Jersey club producer · ${h.tracks.length} charted track${h.tracks.length === 1 ? '' : 's'}</p><ol>${h.tracks.map(t => `<li class="jc-row"><div class="jc-main"><strong>${esc(t.title)}</strong> — ${esc(t.artist)}<br><small>Peak #${t.bestRank} · ${t.weeks.map(w => `<a href="${weekPath(w.week)}">#${w.rank} week of ${formatWeek(w.week)}</a>`).join(' · ')}</small></div></li>`).join('')}</ol><p><a href="/hot">This week's chart</a></p>`,
+      body: `<h1>${esc(h.name)}</h1><p>Jersey club producer · ${h.tracks.length} charted track${h.tracks.length === 1 ? '' : 's'}</p><ol>${h.tracks.map(t => `<li class="jc-row"><div class="jc-main"><strong>${esc(t.title)}</strong> — ${esc(t.artist)}<br><small>Peak #${t.bestRank} · ${t.weeks.map(w => `<a href="${weekPath(w.week)}">#${w.rank} week of ${formatWeek(w.week)}</a>`).join(' · ')}</small></div></li>`).join('')}</ol><h2>Charted on Jersey Club Radio</h2><p><img src="/badges/${slug}.svg" alt="${esc(h.name)}: Rising Now #${peak.rank} on Jersey Club Radio" width="300" height="100"></p><p><a href="/hot">This week's chart</a></p>`,
     }), lastmod: h.tracks.flatMap(t => t.weeks.map(w => w.week)).sort().at(-1) });
   }
 }

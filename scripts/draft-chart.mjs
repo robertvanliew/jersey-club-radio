@@ -94,9 +94,10 @@ const producerOf = t => {
   const title = plain(t.title);
   const remix = title.match(/[(\[]\s*([^()[\]]{2,40}?)\s+(?:jersey\s*club\s+)?(?:remix|rmx|edit|flip|bootleg|blend|mix)\s*[)\]]/i);
   const remixer = remix?.[1]?.replace(/\b(?:jersey\s*club|the|official)\b/gi, '').trim();
-  if (remixer && remixer.length >= 2 && !/^\d+$/.test(remixer)) return firstName(remixer);
+  // ...unless the "remixer" is just a genre or version word: "(Jersey Remix)", "(Extended Mix)"
+  if (remixer && remixer.length >= 2 && !/^\d+$/.test(remixer) && !/^(jersey|club|jersey ?club|official|extended|radio|original|vip)$/i.test(remixer)) return firstName(remixer);
   // "prod" must start a word (not "theproducer1.bandcamp.com") and not be the word "producer"
-  const m = `${title}\n${plain(t.description)}`.match(/(?:^|[\s([@])prod(?!ucer)(?:uced)?\.?\s*(?:by)?\s*[:\-]?\s*([A-Za-z0-9_$][^()[\]|,\n@#\-–—/]{0,30})/i);
+  const m = `${title}\n${plain(t.description)}`.match(/(?:^|[\s([@])prod(?!ucer|uction)(?:uced)?\.?\s*(?:by)?\s*[:\-]?\s*([A-Za-z0-9_$][^()[\]|,\n@#\-–—/]{0,30})/i);
   const name = m?.[1]?.trim().replace(/\s+/g, ' ').replace(/[.\s]+$/, '');
   return name && name.length >= 2 && !/\.(com|net|org)/i.test(name) ? name : firstName(plain(t.user?.username || artistOf(t)));
 };

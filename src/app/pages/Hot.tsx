@@ -4,6 +4,7 @@ import { Flame, ChevronLeft, ChevronRight } from 'lucide-react';
 import { weeks, latestWeek, getChart, weekNeighbours, getProducer } from '../../data/charts';
 import { formatWeek } from '../../data/charts/chartUtils.mjs';
 import { RisingNowList, CARD_STYLE } from '../components/RisingNow';
+import { ProducerBadge } from '../components/ProducerBadge';
 
 /** Set the tab title while a page is mounted (crawlers get full <head> tags from the prerendered HTML) */
 function useTitle(title: string) {
@@ -130,6 +131,7 @@ export function ProducerPage() {
           </li>
         ))}
       </ol>
+      <ProducerBadge slug={slug} history={history} />
       <Link to="/hot" className={linkCls}>See this week's chart <ChevronRight className="w-3.5 h-3.5" /></Link>
     </Shell>
   );
