@@ -18,6 +18,7 @@ import {
 import { publishedArticles, inlineSegments, articleJsonLd, shareLinks, AUTHORS } from '../src/data/news/newsUtils.mjs';
 import { ROUTE_SEO, artistSeo } from '../src/data/seo/routes.mjs';
 import { HOME_EXPLAINER } from '../src/data/seo/home.mjs';
+import { LISTEN } from '../src/data/seo/listen.mjs';
 
 const DIST = 'dist';
 const CHART_DIR = 'src/data/charts';
@@ -215,6 +216,20 @@ if (artistList.length) {
     body: `<h1>Jersey Club Artists &amp; DJs</h1><p>${esc(seo.description)}</p><ul>${artistList.map(a => `<li><a href="${a.path}">${esc(a.name)}</a>${a.role ? `, ${esc(a.role)}` : ''}</li>`).join('')}</ul>${SECTION_LINKS}`,
   });
 }
+
+// ── /listen: the "24/7 Jersey club radio station" answer page ──
+page({
+  path: LISTEN.path, title: LISTEN.title, description: LISTEN.description,
+  jsonLd: { '@context': 'https://schema.org', '@graph': [
+    { '@type': 'RadioStation', name: 'Jersey Club Radio', url: SITE_URL, description: LISTEN.answer, genre: 'Jersey club', isAccessibleForFree: true },
+    { '@type': 'FAQPage', mainEntity: LISTEN.faq.map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) },
+  ] },
+  body: `<h1>${esc(LISTEN.heading)}</h1><p>${esc(LISTEN.answer)}</p><p><a href="/">Listen live now</a></p>
+<ul>${LISTEN.facts.map(([k, v]) => `<li><strong>${esc(k)}:</strong> ${esc(v)}</li>`).join('')}</ul>
+<h2>Questions about Jersey club radio</h2>${LISTEN.faq.map(f => `<h3>${esc(f.q)}</h3><p>${esc(f.a)}</p>`).join('')}
+<p>${LISTEN.links.map(([to, label]) => `<a href="${to}">${esc(label)}</a>`).join(' · ')}</p>${SECTION_LINKS}`,
+});
+urls.push({ path: LISTEN.path, lastmod: today, changefreq: 'monthly' });
 
 // ── 404.html: Vercel serves it, with a 404 status, for any path with no file ──
 page({

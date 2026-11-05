@@ -14,6 +14,7 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import { validateChart } from '../src/data/charts/chartUtils.mjs';
+import { plain, cleanTitle } from './chartClean.mjs';
 
 const { values: args } = parseArgs({
   options: { week: { type: 'string' }, 'dry-run': { type: 'boolean', default: false }, force: { type: 'boolean', default: false } },
@@ -23,6 +24,14 @@ const CHART_DIR = 'src/data/charts';
 const SNAP_DIR = 'data/chart-snapshots';
 const SIZE = 20;
 const MAX_PER_ARTIST = 2;
+// Core Jersey club scene (artists, producers, crews). Their uploads rank ×SCENE_BOOST.
+const SCENE_BOOST = 3;
+const SCENE = [
+  'dj ?sliink', 'uniiqu3', 'dj ?jayhood', 'dj ?tameil', 'dj ?lil ?man', 'dj ?taj', 'bandmanrill', 'dj ?smallz', 'mike ?gip',
+  'sjayy', 'kayy ?drizz', 'cookiee ?kawaii', 'mcvertt', 'brick ?bandits', 'jersey ?club ?kings', 'dj ?fade', 'dj ?frosty',
+  'dj ?problem', 'tim ?dolla', 'dj ?jubilee', 'nadus', 'r3ll', 'dj ?k-?shine', 'dj ?blizz', 'unicorn151', 'acemula', 'dj ?loki',
+  'ms\\.? ?porsh', 'wiztv', 'tricks', 'dj ?irresistible', 'jnice', 'dj ?big ?o', 'kiaBHN', 'mvntana', 'dj ?salute', 'jiddy',
+].map(s => new RegExp(`(^|[^a-z])${s}([^a-z]|$)`, 'i'));
 const QUERIES = ['jersey club', 'jerseyclub', 'jersey club remix'];
 const PAGES_PER_QUERY = 3;
 const DAY = 864e5;
@@ -67,23 +76,32 @@ async function searchRecent(cid) {
   return [...found.values()];
 }
 
+
+
 const isCandidate = t => {
-  const text = `${t.title} ${t.genre ?? ''} ${t.tag_list ?? ''}`;
+  const text = plain(`${t.title} ${t.genre ?? ''} ${t.tag_list ?? ''}`);
   return /jersey/i.test(text)
-    && !/slowed|reverb|sped[\s-]?up|nightcore/i.test(t.title)   // edits, not club-tempo tracks
+    && !/slowed|reverb|sped[\s-]?up|nightcore/i.test(plain(t.title))   // edits, not club-tempo tracks
     && t.duration > 60_000
     && t.playback_count > 0
     && now - Date.parse(t.created_at) < 35 * DAY;
 };
 
-// "prod. X" / "prod by X" / "@prodbyX" in the title or description; else the (first) uploader
+// Who made this version: "(X Jersey Club Remix/Edit/Flip)" in the title, then "prod. X",
+// then the uploader. Never the label metadata artist: on a remix that is the ORIGINAL
+// artist (it credited "IS THERE SOMEONE ELSE (… JERSEY CLUB EDIT)" to The Weeknd).
 const producerOf = t => {
+  const title = plain(t.title);
+  const remix = title.match(/[(\[]\s*([^()[\]]{2,40}?)\s+(?:jersey\s*club\s+)?(?:remix|rmx|edit|flip|bootleg|blend|mix)\s*[)\]]/i);
+  const remixer = remix?.[1]?.replace(/\b(?:jersey\s*club|the|official)\b/gi, '').trim();
+  if (remixer && remixer.length >= 2 && !/^\d+$/.test(remixer)) return firstName(remixer);
   // "prod" must start a word (not "theproducer1.bandcamp.com") and not be the word "producer"
-  const m = `${t.title}\n${t.description ?? ''}`.match(/(?:^|[\s([@])prod(?!ucer)(?:uced)?\.?\s*(?:by)?\s*[:\-]?\s*([A-Za-z0-9_$][^()[\]|,\n@#\-–—/]{0,30})/i);
+  const m = `${title}\n${plain(t.description)}`.match(/(?:^|[\s([@])prod(?!ucer)(?:uced)?\.?\s*(?:by)?\s*[:\-]?\s*([A-Za-z0-9_$][^()[\]|,\n@#\-–—/]{0,30})/i);
   const name = m?.[1]?.trim().replace(/\s+/g, ' ').replace(/[.\s]+$/, '');
-  return name && name.length >= 2 && !/\.(com|net|org)/i.test(name) ? name : firstName(artistOf(t));
+  return name && name.length >= 2 && !/\.(com|net|org)/i.test(name) ? name : firstName(plain(t.user?.username || artistOf(t)));
 };
-const artistOf = t => (t.publisher_metadata?.artist || t.user?.username || 'Unknown').trim();
+// On remixes/edits the label metadata artist is the original artist: show the uploader instead
+const artistOf = t => plain((/remix|rmx|edit|flip|bootleg/i.test(plain(t.title)) ? null : t.publisher_metadata?.artist) || t.user?.username || 'Unknown').trim();
 const firstName = s => s.split(/,| x | & /i)[0].trim().replace(/^@/, '').replace(/^prod\.?\s*(by\s*)?/i, '');
 const artworkOf = t => (t.artwork_url || t.user?.avatar_url || '').replace('-large.', '-t500x500.') || undefined;
 
@@ -113,18 +131,33 @@ const scored = candidates.map(t => {
   const before = prevSnap?.data[t.id]?.plays;
   const gained = before != null ? Math.max(0, t.playback_count - before) : 0;
   const weekly = before != null ? Math.round(gained * 7 / gapDays) : Math.round(t.playback_count * 7 / Math.max(ageDays, 7));
-  return { t, ageDays, before, gained, weekly };
-}).sort((a, b) => b.weekly - a.weekly);
+  // Rank: plays growth, with a boost for the core Jersey club scene so the chart reflects the
+  // genre's own artists and not only global meme edits that happen to be tagged #jerseyclub
+  const scene = SCENE.some(re => re.test(plain(`${t.user?.username ?? ''} ${t.title} ${t.publisher_metadata?.artist ?? ''}`)));
+  return { t, ageDays, before, gained, weekly, scene, score: weekly * (scene ? SCENE_BOOST : 1) };
+}).sort((a, b) => b.score - a.score);
+
+// One entry per song: viral sounds get re-edited many times ("wyw my sweetie" ×3)
+const songKey = t => cleanTitle(t.title).toLowerCase()
+  .replace(/^[^-–—]{1,40}\s[-–—]\s/, '')                    // "Artist - Song" → "Song"
+  .replace(/\([^)]*\)|\[[^\]]*\]/g, ' ')
+  .replace(/jersey\s*club|remix|rmx|edit|flip|bootleg|mix|version|x\s/g, ' ')
+  .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+  .split(/\s+/).filter(Boolean).slice(0, 3).join(' ');
 
 const perArtist = new Map();
+const songs = new Set();
 const picked = [];
 for (const s of scored) {
   const a = artistOf(s.t).toLowerCase();
-  if ((perArtist.get(a) ?? 0) >= MAX_PER_ARTIST) continue;
+  const key = songKey(s.t);
+  if ((perArtist.get(a) ?? 0) >= MAX_PER_ARTIST || (key && songs.has(key))) continue;
   perArtist.set(a, (perArtist.get(a) ?? 0) + 1);
+  if (key) songs.add(key);
   picked.push(s);
   if (picked.length === SIZE) break;
 }
+console.log(`[draft] ${picked.filter(s => s.scene).length} of ${picked.length} picks are core-scene artists`);
 
 const span = gapDays === 7 ? 'this week' : `since ${fmtDate(prevWeek)}`;
 const entries = picked.map(({ t, ageDays, before, gained, weekly }, i) => {
@@ -137,7 +170,7 @@ const entries = picked.map(({ t, ageDays, before, gained, weekly }, i) => {
       : { type: 'listeners', note: `~${k(weekly)} plays a week since release · ${k(t.likes_count ?? 0)} likes · ${k(t.reposts_count ?? 0)} reposts`, url };
   return {
     rank: i + 1,
-    title: t.title.trim(),
+    title: cleanTitle(t.title),
     artist: artistOf(t),
     producer: producerOf(t),
     releaseDate: (t.release_date || t.created_at).slice(0, 10),

@@ -23,3 +23,10 @@ jobs:
           status=$(grep -o '"status":"[a-z]*"' health.json | head -1 | cut -d'"' -f4)
           echo "### Player: ${status:-unknown}" >> "$GITHUB_STEP_SUMMARY"
           [ "$code" = 200 ] || { echo "::error::Player health check failed (HTTP $code, status ${status:-unknown})"; exit 1; }
+      - name: Check the Rising Now chart is current
+        run: |
+          week=$(curl -s --max-time 30 https://jerseyclubradio.com/sitemap.xml | grep -o 'hot/[0-9-]\{10\}' | cut -c5- | sort | tail -1)
+          age=$(( ( $(date -u +%s) - $(date -u -d "$week" +%s) ) / 86400 ))
+          echo "Latest chart week: $week ($age days old)"
+          echo "### Rising Now: week of $week ($age days old)" >> "$GITHUB_STEP_SUMMARY"
+          [ "$age" -le 8 ] || { echo "::error::Rising Now chart is $age days old (latest week $week)"; exit 1; }

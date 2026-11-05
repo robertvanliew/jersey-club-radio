@@ -397,31 +397,8 @@ function ShortsCard({
               allowFullScreen
               title={video.title}
             />
-            {/* Top black strip — kills YouTube title / channel name completely */}
-            <div
-              className="absolute top-0 left-0 right-0 z-[2] pointer-events-none"
-              style={{
-                height: '16%',
-                background: 'linear-gradient(to bottom, #000 0%, #000000F5 25%, #000000CC 50%, #00000066 75%, transparent 100%)',
-              }}
-            />
-            {/* Bottom strip — kills YT branding at bottom edge */}
-            <div
-              className="absolute bottom-0 left-0 right-0 z-[2] pointer-events-none"
-              style={{
-                height: '8%',
-                background: 'linear-gradient(to top, #000000CC 0%, #00000066 40%, transparent 100%)',
-              }}
-            />
-            {/* Bottom-right corner — kills YT logo watermark */}
-            <div
-              className="absolute bottom-0 right-0 z-[2] pointer-events-none"
-              style={{
-                width: '70px',
-                height: '36px',
-                background: 'linear-gradient(135deg, transparent 0%, #000000DD 100%)',
-              }}
-            />
+            {/* No overlays on the player: YouTube's embed rules require its title, channel
+                and logo to stay visible, and they credit the dancer */}
 
             {/* Stop button */}
             <button

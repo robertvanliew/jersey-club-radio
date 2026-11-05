@@ -168,9 +168,9 @@ function NowPlaying() {
                   )}
                 </div>
 
-                <h1 className="text-lg md:text-3xl font-black text-white mb-0.5 leading-tight pr-2">
+                <p className="text-lg md:text-3xl font-black text-white mb-0.5 leading-tight pr-2">
                   {currentTrack ? formatTrackTitle(currentTrack.snippet.title) : 'Jersey Club Radio'}
-                </h1>
+                </p>
                 <p className="font-semibold md:text-lg transition-colors duration-500" style={{ color: inCrate && is24k ? '#fcf6ba' : '#9D00FF' }}>
                   {formatArtistName(currentTrack?.snippet.channelTitle) || 'Loading tracks...'}
                 </p>
@@ -197,7 +197,7 @@ function NowPlaying() {
               )}
             </div>
 
-            <h1
+            <p
               className="text-lg font-black text-white mb-0.5 leading-tight text-center w-full"
               style={{
                 overflow: 'hidden',
@@ -210,7 +210,7 @@ function NowPlaying() {
               {currentTrack
                 ? stripFeaturing(formatTrackTitle(currentTrack.snippet.title, currentTrack.snippet.channelTitle))
                 : 'Jersey Club Radio'}
-            </h1>
+            </p>
             <p
               className="font-semibold mb-2 transition-colors duration-500 text-center w-full"
               style={{

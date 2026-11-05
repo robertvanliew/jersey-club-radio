@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router';
-import { Radio, Zap, Search, ListMusic, RefreshCw, Gamepad2, MessageCircle, Film, ShoppingBag, Disc3, FileText, DollarSign, RotateCcw, Lock as LockIcon, Info, Users } from 'lucide-react';
+import { Radio, Zap, Search, ListMusic, RefreshCw, Gamepad2, MessageCircle, Film, ShoppingBag, Disc3, FileText, DollarSign, RotateCcw, Lock as LockIcon, Info, Users, Flame, Newspaper } from 'lucide-react';
 import { EMAILS } from '../config/contact';
 import { ROUTE_SEO } from '../../data/seo/routes.mjs';
 import { setHead } from '../lib/head';
@@ -17,6 +17,8 @@ import { TermsPricingDrawer } from './TermsPricingDrawer';
 
 const NAV = [
   { path: '/', icon: Radio, label: 'Radio' },
+  { path: '/hot', icon: Flame, label: 'Rising Now' },
+  { path: '/news', icon: Newspaper, label: 'Stories' },
   { path: '/new-releases', icon: Zap, label: 'New Releases' },
   { path: '/search', icon: Search, label: 'Search' },
   { path: '/queue', icon: ListMusic, label: 'Queue' },
@@ -46,7 +48,7 @@ export function Layout({ children }: LayoutProps) {
   // crawlers (which never click) always index each page's own title. Chart, news and
   // producer pages manage their own head tags.
   const hasInteracted = typeof navigator !== 'undefined' && !!(navigator as any).userActivation?.hasBeenActive;
-  useTrackSEO(currentTrack, hasInteracted && isPlaying && !/^\/(hot|producers|news|artists\/)/.test(pathname));
+  useTrackSEO(currentTrack, hasInteracted && isPlaying && !/^\/(hot|producers|news|listen|artists\/)/.test(pathname));
   const { showFlashSale, dismissFlashSale } = useSuperFan();
   const crateCtx = useCrateSafe();
   const is24k = crateCtx?.is24k ?? false;

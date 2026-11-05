@@ -1,45 +1,42 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { useSearchParams } from 'react-router';
 import { usePlayer, Track } from '../context/PlayerContext';
 import { TrackCard } from '../components/TrackCard';
-import { Search as SearchIcon, Loader2, X } from 'lucide-react';
+import { Search as SearchIcon, X } from 'lucide-react';
 
 const POPULAR_SEARCHES = [
-  'DJ Tameil', 'DJ Bavgate', 'DJ Technics',
-  'jersey club mix', 'jersey club banger',
-  'jersey club 2025', 'newark jersey club',
-  'jersey club bounce',
+  'DJ Sliink', 'DJ Jayhood', 'DJ Taj', 'UNIIQU3', 'Tricks',
+  'DJ Lil Man', 'Unicorn151', 'remix',
 ];
 
-export function Search() {
-  const { searchTracks, tracks } = usePlayer();
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<Track[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false);
-  const [error, setError] = useState('');
+// Lowercase, plain letters, no accents or punctuation, so "Sliink" matches "SLIINK RMX"
+const norm = (s: string) => s.normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
-  const doSearch = useCallback(async (q: string) => {
-    if (!q.trim()) return;
+/** Search the station's own catalog (everything here plays on the station) */
+export function Search() {
+  const { tracks } = usePlayer();
+  const [params, setParams] = useSearchParams();
+  const [query, setQuery] = useState(params.get('q') ?? '');
+  const [results, setResults] = useState<Track[]>([]);
+  const [hasSearched, setHasSearched] = useState(false);
+
+  const doSearch = useCallback((q: string) => {
+    const words = norm(q).split(' ').filter(Boolean);
+    if (!words.length) return;
     setQuery(q);
-    setIsSearching(true);
     setHasSearched(true);
-    setError('');
-    try {
-      const res = await searchTracks(q);
-      if (Array.isArray(res)) {
-        setResults(res);
-      } else {
-        setResults([]);
-        setError('Search failed. Check your YouTube API key.');
-      }
-    } catch (e) {
-      console.log('Search error:', e);
-      setError('Search failed. Please try again.');
-      setResults([]);
-    } finally {
-      setIsSearching(false);
-    }
-  }, [searchTracks]);
+    setParams({ q }, { replace: true });
+    setResults(tracks.filter(t => {
+      const hay = norm(`${t.snippet.title} ${t.snippet.channelTitle}`);
+      return words.every(w => hay.includes(w));
+    }));
+  }, [tracks, setParams]);
+
+  // ?q= links (and the WebSite SearchAction) open with results
+  useEffect(() => {
+    const q = params.get('q');
+    if (q && tracks.length && !hasSearched) doSearch(q);
+  }, [params, tracks.length, hasSearched, doSearch]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,7 +47,7 @@ export function Search() {
     setQuery('');
     setResults([]);
     setHasSearched(false);
-    setError('');
+    setParams({}, { replace: true });
   };
 
   return (
@@ -60,7 +57,7 @@ export function Search() {
           <SearchIcon className="w-7 h-7 text-[#FF0080]" />
           Search
         </h1>
-        <p className="text-[#5B4F70] text-sm">Find Jersey Club artists, DJs, and tracks</p>
+        <p className="text-[#5B4F70] text-sm">Find Jersey club artists, DJs and tracks on the station</p>
       </div>
 
       {/* Search input */}
@@ -87,10 +84,7 @@ export function Search() {
             className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-xl flex items-center justify-center transition-all"
             style={{ background: 'linear-gradient(135deg, #FF0080, #9D00FF)' }}
           >
-            {isSearching
-              ? <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
-              : <SearchIcon className="w-3.5 h-3.5 text-white" />
-            }
+            <SearchIcon className="w-3.5 h-3.5 text-white" />
           </button>
         </div>
       </form>
@@ -113,24 +107,13 @@ export function Search() {
         </div>
       )}
 
-      {/* Error */}
-      {error && (
-        <div className="mb-6 p-4 rounded-xl border border-red-900/50 bg-red-900/10 text-red-400 text-sm">
-          {error}
-        </div>
-      )}
 
       {/* Results */}
-      {isSearching ? (
-        <div className="flex flex-col items-center gap-4 py-16 text-center">
-          <Loader2 className="w-10 h-10 text-[#FF0080] animate-spin" />
-          <p className="text-[#7B6F90] text-sm">Searching YouTube for "{query}"...</p>
-        </div>
-      ) : hasSearched && results.length === 0 && !error ? (
+      {hasSearched && results.length === 0 ? (
         <div className="flex flex-col items-center gap-4 py-16 text-center">
           <span className="text-5xl">🔍</span>
           <p className="text-white font-bold text-lg">No results found</p>
-          <p className="text-[#5B4F70] text-sm">Try searching for a different term (searches YouTube for Jersey Club tracks)</p>
+          <p className="text-[#5B4F70] text-sm">Nothing on the station matches that yet. Try an artist name, or submit a track from the homepage.</p>
         </div>
       ) : results.length > 0 ? (
         <div>
