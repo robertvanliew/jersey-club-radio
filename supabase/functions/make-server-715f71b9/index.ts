@@ -920,20 +920,31 @@ async function resolveScStream(trackId: string): Promise<{ url: string; hls?: bo
     const progressive = transcodings.find((t) => t.format?.protocol === 'progressive' && !t.snipped);
     // Plain HLS only ("hls"; the encrypted variants are "ctr-encrypted-hls" etc). MP3 first:
     // every browser decodes it; AAC (audio/mp4) is next best.
-    const hlsOf = (mime: RegExp) => transcodings.find((t) => t.format?.protocol === 'hls' && mime.test(t.format?.mime_type ?? '') && !t.snipped);
-    const hls = hlsOf(/audio\/mpeg/) ?? hlsOf(/audio\/mp4|aac/);
-    const pick = progressive ?? hls;
-    if (!pick) return { error: "No playable stream available", status: 404 };
+    // Every plain (unencrypted) option, best first: some listed ones are retired and 404
+    const plain = transcodings.filter((t) => t.format?.protocol === 'hls' && !t.snipped);
+    const candidates = [
+      progressive,
+      ...plain.filter((t) => /audio\/mp4|aac/.test(t.format?.mime_type ?? '')),
+      ...plain.filter((t) => !/audio\/mp4|aac/.test(t.format?.mime_type ?? '')),
+    ].filter(Boolean);
+    if (!candidates.length) {
+      const kinds = transcodings.map((t) => `${t.format?.protocol}/${(t.format?.mime_type ?? '').split(';')[0]}`).join(', ');
+      return { error: `No playable stream available (offered: ${kinds || 'none'})`, status: 404 };
+    }
 
     // Resolve transcoding URL → actual CDN URL (a playlist for HLS)
-    const streamRes = await fetch(
-      `${pick.url}?client_id=${scClientId}${track.track_authorization ? `&track_authorization=${track.track_authorization}` : ''}`,
-      { signal: AbortSignal.timeout(6000), headers: { 'User-Agent': 'Mozilla/5.0' } }
-    );
-    if (!streamRes.ok) return { error: "Stream resolve failed", status: 502 };
-    const streamData = await streamRes.json();
-    if (!streamData.url) return { error: "No stream URL in response", status: 502 };
-    return pick === progressive ? { url: streamData.url } : { url: streamData.url, hls: true };
+    const tried: string[] = [];
+    for (const pick of candidates) {
+      const auth = track.track_authorization ? `&track_authorization=${track.track_authorization}` : '';
+      const streamRes = await fetch(`${pick.url}?client_id=${scClientId}${auth}`,
+        { signal: AbortSignal.timeout(6000), headers: { 'User-Agent': 'Mozilla/5.0' } });
+      tried.push(`${pick.format?.protocol}/${(pick.format?.mime_type ?? '').split(';')[0]} ${streamRes.status}`);
+      if (!streamRes.ok) continue;
+      const streamData = await streamRes.json();
+      if (!streamData.url) continue;
+      return pick === progressive ? { url: streamData.url } : { url: streamData.url, hls: true };
+    }
+    return { error: `Stream resolve failed (${tried.join('; ')})`, status: 502 };
   } catch (e) {
     console.log('[SC Stream] error:', e);
     return { error: "Failed to resolve stream", status: 500 };

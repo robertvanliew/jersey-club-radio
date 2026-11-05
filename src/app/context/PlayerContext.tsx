@@ -36,6 +36,7 @@ function silentWavUrl() {
   new Uint8Array(buf, 44).fill(128);
   return (silentUrl = URL.createObjectURL(new Blob([buf], { type: 'audio/wav' })));
 }
+const isSilentClip = (audio: HTMLAudioElement) => !!silentUrl && audio.src === silentUrl;
 
 declare global {
   interface Window {
@@ -386,6 +387,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
    * same <audio> element, so the Web Audio chain (EQ Mix, normalization) is unchanged.
    */
   const hlsRef = useRef<Partial<Record<DeckId, { destroy: () => void }>>>({});
+  // A seek requested before the deck's stream was attached (see seekDeck)
+  const pendingSeekRef = useRef<Partial<Record<DeckId, number>>>({});
   const attachStream = async (deck: DeckId, audio: HTMLAudioElement, url: string, isHls: boolean, onFail: () => void) => {
     hlsRef.current[deck]?.destroy();
     delete hlsRef.current[deck];
@@ -553,6 +556,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       const audio = deck === 'A' ? scAudioA.current : scAudioB.current;
       if (!audio) return;
       if (deckReadyRef.current[deck] && audio.readyState >= 1) audio.currentTime = sec;
+      // Stream not attached yet: loadOnDeck applies it once the real stream's metadata loads
+      // (a 'loadedmetadata' listener here could fire for the silent unlock clip instead)
+      else if (!deckReadyRef.current[deck]) pendingSeekRef.current[deck] = sec;
       else audio.addEventListener('loadedmetadata', () => { audio.currentTime = sec; }, { once: true });
     } else {
       try { getSafeSc(deck)?.seekTo(sec * 1000); } catch { }
@@ -598,6 +604,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       const gain = deck === 'A' ? deckGainA.current : deckGainB.current;
 
       const seq = ++deckLoadSeqRef.current[deck];
+      delete pendingSeekRef.current[deck]; // a seek for the previous track no longer applies
       const isStale = () => seq !== deckLoadSeqRef.current[deck];
       deckReadyRef.current[deck] = false;
       deckWantsPlayRef.current[deck] = autoPlay;
@@ -607,7 +614,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       const giveUp = (why: string) => {
         if (isStale()) return;
         unplayableRef.current.add(track.id.videoId);
-        console.warn(`[SC] "${track.snippet.title}" won't play (${why}) — skipping`);
+        console.warn(`[SC Native] "${track.snippet.title}" won't play (${why}) — skipping`);
         onUnplayableRef.current(deck, track);
       };
 
@@ -668,6 +675,10 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
               loadWidget();
             });
             if (isStale()) return;
+            const seekTo = pendingSeekRef.current[deck];
+            delete pendingSeekRef.current[deck];
+            // The stream was just attached, so its metadata is still to come
+            if (seekTo != null) audio.addEventListener('loadedmetadata', () => { if (!isStale()) audio.currentTime = seekTo; }, { once: true });
             deckReadyRef.current[deck] = true;
             audio.addEventListener('playing', () => { if (!isStale()) onTrackPlayingRef.current(); }, { once: true });
             if (deckWantsPlayRef.current[deck]) {
@@ -683,7 +694,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
             // No direct stream doesn't mean the track can't play: SoundCloud may only offer
             // other stream formats. The embed plays those; its watchdog skips the track only
             // if the embed can't play it either (label/DRM-restricted tracks).
-            console.warn(`[SC Native] no direct stream for "${track.snippet.title}" (${err?.message}); using the embedded player`);
+            const msg = String(err?.message ?? '');
+            // Only encrypted (DRM) streams on offer: the embed can't play those either
+            const offered = msg.match(/offered: ([^)]*)/)?.[1];
+            if (offered && offered.split(', ').every(k => /encrypted/.test(k))) { giveUp('only DRM-protected streams'); return; }
+            console.warn(`[SC Native] no direct stream for "${track.snippet.title}" (${msg}); using the embedded player`);
             reportPlayerIssueRef.current('no-direct-stream');
             loadWidget();
           });
@@ -1243,8 +1258,10 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       delay.connect(compressor);
       deckFxRef.current[deck] = { hp, ls, mid, echo: echoSend, an };
 
+      // The silent unlock clip isn't a song: its play/pause/end must not drive the player
+      // (its end used to look like the song ending and skip to the next one)
       audio.addEventListener('play', () => {
-        if (destroyed) return;
+        if (destroyed || isSilentClip(audio)) return;
         const isActive = activeDeckRef.current === deck;
         const isIncoming = isCrossfadingRef.current && incomingDeckRef.current === deck;
         if (isActive || isIncoming) { setIsPlaying(true); isPlayingRef.current = true; }
@@ -1254,13 +1271,13 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         deckUnlockedRef.current[deck] = true;
       });
       audio.addEventListener('pause', () => {
-        if (destroyed) return;
+        if (destroyed || isSilentClip(audio)) return;
         if (activeDeckRef.current === deck && !isCrossfadingRef.current) {
           setIsPlaying(false); isPlayingRef.current = false;
         }
       });
       audio.addEventListener('ended', () => {
-        if (destroyed) return;
+        if (destroyed || isSilentClip(audio)) return;
         if (isCrossfadingRef.current) return;
         if (activeDeckRef.current === deck) {
           setIsPlaying(false); isPlayingRef.current = false;
@@ -1295,10 +1312,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     const unlock = () => {
       for (const deck of ['A', 'B'] as const) {
         const audio = deck === 'A' ? scAudioA.current : scAudioB.current;
-        if (!audio || deckUnlockedRef.current[deck]) continue;
-        // Leave the live deck and any deck that is meant to be playing alone
-        if (deck === activeDeckRef.current || deckWantsPlayRef.current[deck] || !audio.paused) continue;
-        // Idle decks sit at zero gain, so this is inaudible
+        if (!audio || deckUnlockedRef.current[deck] || !audio.paused) continue;
+        // play() inside the tap is what unlocks the element. The live deck is included: its
+        // stream may still be loading (HLS takes a moment), and a play() that lands after the
+        // tap would be refused. A deck with no stream yet gets a silent clip; a deck that is
+        // meant to play just starts (or starts once its stream arrives).
         if (!audio.src) audio.src = silentWavUrl();
         audio.play().then(() => {
           deckUnlockedRef.current[deck] = true;
@@ -1668,6 +1686,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   }, [cancelCrossfade, loadOnDeck, stopDeck]);
 
   /** Toggle play / pause */
+  // Set once the startup station sync has begun (it picks and starts the live song)
+  const autoStartedRef = useRef(false);
+
   const togglePlay = useCallback(() => {
     const active = activeDeckRef.current;
     const engine = getDeckEngine(active).current;
@@ -1703,6 +1724,10 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
             try { getSafeSc(active)?.play(); } catch { }
           }
         }
+      } else if (autoStartedRef.current) {
+        // The station sync is still picking the live song: it starts playback itself (this
+        // tap has already unlocked audio). Playing track 0 here would leave Live as "My pick".
+        console.log('[Radio] Play tapped while syncing to the station; the live song will start');
       } else if (tracks[0]) {
         playTrack(tracks[0], tracks);
       }
@@ -1847,8 +1872,6 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       }
     }
   }, [cancelCrossfade, loadOnDeck, seekDeck, stopDeck, location.pathname]);
-
-  const autoStartedRef = useRef(false);
 
   // Pause playback automatically when entering admin
   useEffect(() => {

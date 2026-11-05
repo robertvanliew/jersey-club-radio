@@ -193,7 +193,7 @@ const neutral = d => d && Math.abs(d.hp - 20) < 1 && Math.abs(d.ls) < 0.5 && Mat
   const t0 = await startTransition(page, logs);
   check('transition started', !!t0);
   await waitUntil(t0, 20);
-  check('SoundCloud-only track is skipped', logs.some(l => /can only be played on SoundCloud/.test(l.text)));
+  check('SoundCloud-only track is skipped', logs.some(l => /won't play/.test(l.text)));
   check('mix restarts into the following track', logs.filter(l => /Starting .*crossfade/.test(l.text)).length >= 2);
   const s1 = await fx(page);
   check('music keeps playing (no stall)', s1.playing.some(Boolean), JSON.stringify(s1.playing));
