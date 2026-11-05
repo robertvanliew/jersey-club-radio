@@ -1,0 +1,57 @@
+# After each deploy, tell IndexNow search engines (Bing, which feeds ChatGPT search and
+# Copilot, plus Yandex, Seznam, Naver) which pages changed, so they recrawl right away
+# instead of waiting. Google doesn't use IndexNow; it reads the sitemap in Search Console.
+#
+# Changed pages = sitemap URLs whose <lastmod> is in the last 2 days (new chart week,
+# new or edited stories, artist updates). The key file lives at /<key>.txt (public/).
+name: IndexNow
+
+on:
+  push:
+    branches: [master]
+    paths: ['src/**', 'scripts/**', 'public/**', 'index.html']
+  # The Monday chart is committed by the GitHub bot, which doesn't trigger push workflows
+  schedule:
+    - cron: '45 13 * * 1'   # Mondays, after the 13:00 chart publish has deployed
+  workflow_dispatch:
+    inputs:
+      all:
+        description: 'Submit every URL in the sitemap, not just recently changed ones'
+        type: boolean
+        default: false
+
+concurrency:
+  group: indexnow
+  cancel-in-progress: true
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      HOST: jerseyclubradio.com
+      KEY: a913cd8acb5ccfb27fca904bd6230da5
+    steps:
+      - name: Wait for the deploy of this commit
+        run: |
+          # Vercel builds in ~1-2 min; wait until the sitemap stops changing for a minute
+          sleep 120
+          prev=""; for i in $(seq 1 20); do
+            cur=$(curl -s https://$HOST/sitemap.xml | sha1sum)
+            [ "$cur" = "$prev" ] && break; prev=$cur; sleep 30
+          done
+          curl -sf https://$HOST/$KEY.txt > /dev/null || { echo "::error::IndexNow key file not reachable"; exit 1; }
+      - name: Submit changed URLs
+        run: |
+          curl -s https://$HOST/sitemap.xml > sitemap.xml
+          if [ "${{ inputs.all }}" = "true" ]; then since=0000-00-00; else since=$(date -u -d '2 days ago' +%Y-%m-%d); fi
+          urls=$(awk -v since="$since" '/<loc>/{gsub(/.*<loc>|<\/loc>.*/,""); loc=$0} /<lastmod>/{gsub(/.*<lastmod>|<\/lastmod>.*/,""); if ($0 >= since) print loc}' sitemap.xml)
+          urls=$(printf "%s\nhttps://%s/\nhttps://%s/hot\n" "$urls" "$HOST" "$HOST" | sort -u | grep .)
+          echo "Submitting $(echo "$urls" | wc -l) URL(s):"; echo "$urls"
+          list=$(echo "$urls" | jq -R . | jq -s .)
+          body=$(jq -n --arg host "$HOST" --arg key "$KEY" --argjson urls "$list" \
+            '{host: $host, key: $key, keyLocation: ("https://" + $host + "/" + $key + ".txt"), urlList: $urls}')
+          code=$(curl -s -o resp.txt -w '%{http_code}' -X POST https://api.indexnow.org/indexnow \
+            -H 'Content-Type: application/json; charset=utf-8' -d "$body")
+          echo "IndexNow HTTP $code"; cat resp.txt; echo
+          case "$code" in 200|202) ;; *) echo "::error::IndexNow rejected the submission (HTTP $code)"; exit 1 ;; esac

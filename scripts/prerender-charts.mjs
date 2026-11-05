@@ -15,10 +15,11 @@ import {
   SITE_URL, movement, producerSlug, formatWeek, publishedWeeks, neighbours, producerHistory,
   validateChart, chartJsonLd, producerJsonLd,
 } from '../src/data/charts/chartUtils.mjs';
-import { publishedArticles, inlineSegments, articleJsonLd, shareLinks, AUTHORS } from '../src/data/news/newsUtils.mjs';
+import { publishedArticles, inlineSegments, articleJsonLd, shareLinks, AUTHORS, authorJsonLd } from '../src/data/news/newsUtils.mjs';
 import { ROUTE_SEO, artistSeo } from '../src/data/seo/routes.mjs';
 import { HOME_EXPLAINER } from '../src/data/seo/home.mjs';
 import { LISTEN } from '../src/data/seo/listen.mjs';
+import { GUIDES } from '../src/data/seo/guides.mjs';
 
 const DIST = 'dist';
 const CHART_DIR = 'src/data/charts';
@@ -231,6 +232,30 @@ page({
 });
 urls.push({ path: LISTEN.path, lastmod: today, changefreq: 'monthly' });
 
+// ── Guides: /what-is-jersey-club, comparisons ──
+const richHtml = t => inlineSegments(t).map(s => (s.href ? `<a href="${esc(s.href)}">${esc(s.text)}</a>` : esc(s.text))).join('');
+for (const g of GUIDES) {
+  page({
+    path: g.path, title: g.title, description: g.description,
+    jsonLd: { '@context': 'https://schema.org', '@graph': [
+      { '@type': 'Article', headline: g.heading, description: g.description, url: SITE_URL + g.path, mainEntityOfPage: SITE_URL + g.path,
+        datePublished: g.updated, dateModified: g.updated, inLanguage: 'en-US', author: authorJsonLd('Robert Van Liew'),
+        publisher: { '@type': 'Organization', name: 'Jersey Club Radio', url: SITE_URL }, about: { '@type': 'Thing', name: 'Jersey club', sameAs: 'https://en.wikipedia.org/wiki/Jersey_club' },
+        citation: g.sources.map(s => ({ '@type': 'CreativeWork', name: s.name, url: s.url })) },
+      { '@type': 'FAQPage', mainEntity: g.faq.map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) },
+    ] },
+    body: `<article><h1>${esc(g.heading)}</h1><p><small>By <a href="https://robertvanliew.com" rel="author">Robert Van Liew</a> · Last updated ${esc(g.updated)}</small></p>
+<p>${esc(g.answer)}</p><p><a href="/">Hear it: play Jersey Club Radio</a></p>
+${g.facts ? `<ul>${g.facts.map(([k, v]) => `<li><strong>${esc(k)}:</strong> ${esc(v)}</li>`).join('')}</ul>` : ''}
+${g.table ? `<table><thead><tr>${g.table.head.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${g.table.rows.map(r => `<tr><th scope="row">${esc(r[0])}</th>${r.slice(1).map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>` : ''}
+${g.sections.map(s => `<h2>${esc(s.h2)}</h2>${s.body.map(p => `<p>${richHtml(p)}</p>`).join('')}`).join('')}
+<h2>Common questions</h2>${g.faq.map(f => `<h3>${esc(f.q)}</h3><p>${esc(f.a)}</p>`).join('')}
+<h2>Sources</h2><ul>${g.sources.map(s => `<li><a href="${esc(s.url)}" rel="noopener">${esc(s.name)}</a></li>`).join('')}</ul>
+<p>${g.related.map(([to, label]) => `<a href="${to}">${esc(label)}</a>`).join(' · ')}</p></article>${SECTION_LINKS}`,
+  });
+  urls.push({ path: g.path, lastmod: g.updated, changefreq: 'monthly' });
+}
+
 // ── 404.html: Vercel serves it, with a 404 status, for any path with no file ──
 page({
   path: '/404', file: '404.html', noindex: true, jsonLd: null,
@@ -268,6 +293,8 @@ ${md(e.definition)}
 
 ## Key pages
 - [Listen live](${SITE_URL}/): The 24/7 Jersey club radio stream
+- [24/7 Jersey club radio station](${SITE_URL}/listen): What the station is, how to listen, FAQ
+${GUIDES.map(g => `- [${md(g.heading)}](${SITE_URL}${g.path}): ${md(g.description)}`).join('\n')}
 - [Rising Now chart](${SITE_URL}/hot): The fastest-rising new Jersey club tracks, updated every Monday
 - [Chart archive](${SITE_URL}/hot/archive): Every past week of the Rising Now chart
 - [Stories](${SITE_URL}/news): Features on Jersey club history, artists and dance culture
