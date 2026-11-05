@@ -21,6 +21,7 @@ import { bestPeak, badgeSvg } from '../src/data/charts/badge.mjs';
 import { HOME_EXPLAINER } from '../src/data/seo/home.mjs';
 import { LISTEN } from '../src/data/seo/listen.mjs';
 import { BPM_PAGE } from '../src/data/seo/bpm.mjs';
+import { BEST_SONGS, sourceLabel } from '../src/data/seo/bestSongs.mjs';
 import { GUIDES } from '../src/data/seo/guides.mjs';
 import { ARTIST_PROFILES, PROFILES_UPDATED } from '../src/data/artists/profiles.mjs';
 
@@ -306,6 +307,22 @@ page({
 });
 urls.push({ path: BPM_PAGE.path, lastmod: BPM_PAGE.updated, changefreq: 'monthly' });
 
+// ── /best-jersey-club-songs: the canon by era ──
+{
+  const all = BEST_SONGS.eras.flatMap(e => e.songs);
+  page({
+    path: BEST_SONGS.path, title: BEST_SONGS.title, description: BEST_SONGS.description,
+    jsonLd: { '@context': 'https://schema.org', '@graph': [
+      { '@type': 'Article', headline: BEST_SONGS.heading, description: BEST_SONGS.description, url: SITE_URL + BEST_SONGS.path, datePublished: BEST_SONGS.updated, dateModified: BEST_SONGS.updated, author: authorJsonLd('Robert Van Liew'), publisher: { '@type': 'Organization', name: 'Jersey Club Radio', url: SITE_URL } },
+      { '@type': 'ItemList', name: BEST_SONGS.heading, numberOfItems: all.length, itemListElement: all.map((s, i) => ({ '@type': 'ListItem', position: i + 1, item: { '@type': 'MusicRecording', name: s.title, byArtist: { '@type': 'MusicGroup', name: s.artist }, genre: 'Jersey club', ...(s.year && /^d{4}$/.test(s.year) ? { datePublished: s.year } : {}) } })) },
+    ] },
+    body: `<article><h1>${esc(BEST_SONGS.heading)}</h1><p><small>By <a href="https://robertvanliew.com" rel="author">Robert Van Liew</a> · Last updated ${esc(BEST_SONGS.updated)} · ${all.length} songs</small></p><p>${esc(BEST_SONGS.answer)}</p>
+${BEST_SONGS.eras.map(e => `<h2>${esc(e.name)} (${esc(e.years)})</h2><p>${esc(e.intro)}</p><ol>${e.songs.map(s => `<li><strong>${esc(s.title)}</strong>, ${esc(s.artist)}${s.year ? ` (${esc(s.year)})` : ''}${s.producer ? `, prod. ${esc(s.producer)}` : ''}. ${esc(s.why)} ${s.sources.map(u => `<a href="${esc(u)}" rel="noopener">${esc(sourceLabel(u))}</a>`).join(', ')}</li>`).join('')}</ol>`).join('')}
+<p>${BEST_SONGS.related.map(([to, label]) => `<a href="${to}">${esc(label)}</a>`).join(' · ')}</p></article>${SECTION_LINKS}`,
+  });
+  urls.push({ path: BEST_SONGS.path, lastmod: BEST_SONGS.updated, changefreq: 'monthly' });
+}
+
 // ── 404.html: Vercel serves it, with a 404 status, for any path with no file ──
 page({
   path: '/404', file: '404.html', noindex: true, jsonLd: null,
@@ -344,6 +361,7 @@ ${md(e.definition)}
 ## Key pages
 - [Listen live](${SITE_URL}/): The 24/7 Jersey club radio stream
 - [24/7 Jersey club radio station](${SITE_URL}/listen): What the station is, how to listen, other Jersey club radio shows
+- [Best Jersey club songs](${SITE_URL}/best-jersey-club-songs): 49 essential Jersey club songs by era, each with why it matters and sources
 - [Jersey club BPM](${SITE_URL}/jersey-club-bpm): Tempo range (about 130 to 140 BPM) and a free tap tempo tool
 ${GUIDES.map(g => `- [${md(g.heading)}](${SITE_URL}${g.path}): ${md(g.description)}`).join('\n')}
 - [Rising Now chart](${SITE_URL}/hot): The fastest-rising new Jersey club tracks, updated every Monday
