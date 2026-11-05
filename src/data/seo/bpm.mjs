@@ -25,7 +25,7 @@ export const BPM_PAGE = {
     { name: 'Wikipedia: Baltimore club', url: 'https://en.wikipedia.org/wiki/Baltimore_club' },
     { name: 'Native Instruments: What is Jersey club?', url: 'https://www.native-instruments.com/blogs/blog/jersey-club' },
   ],
-  related: [['/what-is-jersey-club', 'What is Jersey club?'], ['/games/beat-maker', 'Make a Jersey club beat'], ['/listen', 'Listen to Jersey club 24/7']],
+  related: [['/jersey-club-kick-pattern', 'Jersey club kick pattern + free MIDI'], ['/what-is-jersey-club', 'What is Jersey club?'], ['/games/beat-maker', 'Make a Jersey club beat'], ['/listen', 'Listen to Jersey club 24/7']],
 };
 
 /** Tempo math for the converter: the nearest Jersey club tempo and the speed change to get there */

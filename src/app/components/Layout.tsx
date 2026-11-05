@@ -48,7 +48,7 @@ export function Layout({ children }: LayoutProps) {
   // crawlers (which never click) always index each page's own title. Chart, news and
   // producer pages manage their own head tags.
   const hasInteracted = typeof navigator !== 'undefined' && !!(navigator as any).userActivation?.hasBeenActive;
-  useTrackSEO(currentTrack, hasInteracted && isPlaying && !/^\/(hot|producers|news|listen|what-is-jersey-club|jersey-club-vs|jersey-club-bpm|jersey-club-dances|best-jersey-club-songs|artists\/)/.test(pathname));
+  useTrackSEO(currentTrack, hasInteracted && isPlaying && !/^\/(hot|producers|news|listen|what-is-jersey-club|jersey-club-vs|jersey-club-bpm|jersey-club-dances|best-jersey-club-songs|jersey-club-kick-pattern|artists\/)/.test(pathname));
   const { showFlashSale, dismissFlashSale } = useSuperFan();
   const crateCtx = useCrateSafe();
   const is24k = crateCtx?.is24k ?? false;

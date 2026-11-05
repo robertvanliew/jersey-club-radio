@@ -21,6 +21,7 @@ import { bestPeak, badgeSvg } from '../src/data/charts/badge.mjs';
 import { HOME_EXPLAINER } from '../src/data/seo/home.mjs';
 import { LISTEN } from '../src/data/seo/listen.mjs';
 import { BPM_PAGE } from '../src/data/seo/bpm.mjs';
+import { KICK_PAGE } from '../src/data/seo/kickPattern.mjs';
 import { BEST_SONGS, sourceLabel } from '../src/data/seo/bestSongs.mjs';
 import { GUIDES } from '../src/data/seo/guides.mjs';
 import { ARTIST_PROFILES, PROFILES_UPDATED } from '../src/data/artists/profiles.mjs';
@@ -323,6 +324,22 @@ ${BEST_SONGS.eras.map(e => `<h2>${esc(e.name)} (${esc(e.years)})</h2><p>${esc(e.
   urls.push({ path: BEST_SONGS.path, lastmod: BEST_SONGS.updated, changefreq: 'monthly' });
 }
 
+// ── /jersey-club-kick-pattern: the kick pattern tool (the player needs JavaScript) ──
+page({
+  path: KICK_PAGE.path, title: KICK_PAGE.title, description: KICK_PAGE.description,
+  jsonLd: { '@context': 'https://schema.org', '@graph': [
+    { '@type': 'WebApplication', name: 'Jersey Club Kick Pattern Generator', url: SITE_URL + KICK_PAGE.path, applicationCategory: 'MultimediaApplication', operatingSystem: 'Any (web browser)', isAccessibleForFree: true, offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' }, description: KICK_PAGE.description },
+    { '@type': 'FAQPage', mainEntity: KICK_PAGE.faq.map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) },
+  ] },
+  body: `<article><h1>${esc(KICK_PAGE.heading)}</h1><p><small>By <a href="https://robertvanliew.com" rel="author">Robert Van Liew</a> · Last updated ${esc(KICK_PAGE.updated)}</small></p><p>${esc(KICK_PAGE.answer)}</p>
+<p>Play the pattern, edit it on a 2-bar grid, and download it free as MIDI or a WAV loop on this page.</p>
+${KICK_PAGE.sections.map(s => `<h2>${esc(s.h2)}</h2>${s.body.map(x => `<p>${esc(x)}</p>`).join('')}`).join('')}
+<h2>Common questions</h2>${KICK_PAGE.faq.map(f => `<h3>${esc(f.q)}</h3><p>${esc(f.a)}</p>`).join('')}
+<h2>Sources</h2><ul>${KICK_PAGE.sources.map(s => `<li><a href="${esc(s.url)}" rel="noopener">${esc(s.name)}</a></li>`).join('')}</ul>
+<p>${KICK_PAGE.related.map(([to, label]) => `<a href="${to}">${esc(label)}</a>`).join(' · ')}</p></article>${SECTION_LINKS}`,
+});
+urls.push({ path: KICK_PAGE.path, lastmod: KICK_PAGE.updated, changefreq: 'monthly' });
+
 // ── 404.html: Vercel serves it, with a 404 status, for any path with no file ──
 page({
   path: '/404', file: '404.html', noindex: true, jsonLd: null,
@@ -362,6 +379,7 @@ ${md(e.definition)}
 - [Listen live](${SITE_URL}/): The 24/7 Jersey club radio stream
 - [24/7 Jersey club radio station](${SITE_URL}/listen): What the station is, how to listen, other Jersey club radio shows
 - [Best Jersey club songs](${SITE_URL}/best-jersey-club-songs): 49 essential Jersey club songs by era, each with why it matters and sources
+- [Jersey club kick pattern](${SITE_URL}/jersey-club-kick-pattern): The classic kick pattern (steps 1, 5, 9, 12, 15), playable, with free MIDI and WAV downloads
 - [Jersey club BPM](${SITE_URL}/jersey-club-bpm): Tempo range (about 130 to 140 BPM) and a free tap tempo tool
 ${GUIDES.map(g => `- [${md(g.heading)}](${SITE_URL}${g.path}): ${md(g.description)}`).join('\n')}
 - [Rising Now chart](${SITE_URL}/hot): The fastest-rising new Jersey club tracks, updated every Monday
