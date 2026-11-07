@@ -618,7 +618,7 @@ function PageFooter() {
                 <div className="text-center md:text-left">
                     <p className="text-xs text-[#3B2F50]">© 2026 Jersey Club Radio 24/7. All rights reserved.</p>
                     <p className="text-xs text-[#5B4F70] mt-1">
-                        Designed &amp; engineered by{' '}
+                        Design, development &amp; SEO by{' '}
                         <a href="https://robertvanliew.com" target="_blank" rel="noopener" className="font-semibold text-[#A99DBF] hover:text-[#C77DFF] underline-offset-2 hover:underline transition-colors">
                             Robert Van Liew
                         </a>

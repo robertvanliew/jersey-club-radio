@@ -311,7 +311,7 @@ export function Layout({ children }: LayoutProps) {
               </p>
               <p className="text-[10px] text-[#3B2F50] text-center mt-[5px] mb-[0px]">&copy; Built by a Jersey Club DJ</p>
               <p className="text-[10px] text-[#5B4F70] text-center mt-[5px]">
-                Designed &amp; engineered by{' '}
+                Design, development &amp; SEO by{' '}
                 <a href="https://robertvanliew.com" target="_blank" rel="noopener" className="font-semibold text-[#A99DBF] hover:text-[#C77DFF] underline-offset-2 hover:underline transition-colors">
                   Robert Van Liew
                 </a>
