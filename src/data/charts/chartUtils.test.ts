@@ -17,6 +17,7 @@ it('producerSlug', () => {
   expect(producerSlug('DJ Sliink')).toBe('dj-sliink');
   expect(producerSlug('  Uniiqu3 & Friends! ')).toBe('uniiqu3-and-friends');
   expect(producerSlug('Beyoncé')).toBe('beyonce');
+  expect(producerSlug('🕷')).toBe('producer-1f577');
 });
 
 it('formatWeek', () => expect(formatWeek('2026-09-28')).toBe('Sept 28, 2026'));

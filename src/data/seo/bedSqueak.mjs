@@ -4,8 +4,8 @@
 
 export const SQUEAK_PAGE = {
   path: '/jersey-club-bed-squeak',
-  title: 'The Jersey Club Bed Squeak: Where It Comes From + Free Sounds',
-  description: 'The Jersey club bed squeak comes from the intro of Trillville\'s 2004 song "Some Cut." Its story, how producers use it, and free original squeak, kick and clap sounds to download.',
+  title: 'Jersey Club Bed Squeak: Where It Comes From + Free Sounds',
+  description: 'The Jersey club bed squeak comes from Trillville\'s 2004 song "Some Cut." Its story, how producers use it, and free original squeak sounds to download.',
   heading: 'The Jersey club bed squeak',
   updated: '2026-11-05',
   answer: 'The Jersey club bed squeak is a creaking-mattress sound taken from the intro of "Some Cut," a 2004 single by the Atlanta group Trillville featuring Cutty, produced by Lil Jon. Newark producers chopped it into their tracks in the mid-2000s, and it became one of the most recognizable sounds in Jersey club, used as a rhythm, not just an effect.',

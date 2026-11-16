@@ -75,13 +75,38 @@ const STYLE = `<style>.jc-static{max-width:760px;margin:0 auto;padding:24px 16px
 
 const template = readFileSync(join(DIST, 'index.html'), 'utf8');
 
+// Titles over ~60 characters get cut off in search results: drop the brand suffix first.
+const SUFFIX = ' | Jersey Club Radio';
+const fitTitle = t => (t.length > 60 && t.endsWith(SUFFIX) ? t.slice(0, -SUFFIX.length) : t);
+// Descriptions over ~160 characters get cut off: end at the last full sentence that fits,
+// or at a word boundary.
+const fitDescription = d => {
+  const s = String(d ?? '').replace(/\s+/g, ' ').trim();
+  if (s.length <= 160) return s;
+  const cut = s.slice(0, 160);
+  const end = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('? '), cut.lastIndexOf('! '));
+  if (end >= 100) return cut.slice(0, end + 1);
+  return cut.slice(0, cut.lastIndexOf(' ', 157)).replace(/[,:;\s]+$/, '') + '…';
+};
+
+// Site-wide links on every prerendered page, so no indexable page is an orphan
+const FOOTER = `<footer class="jc-static" style="border-top:1px solid rgba(157,0,255,.15);font-size:.8rem;line-height:1.9">
+<p><strong>Listen:</strong> <a href="/">Jersey Club Radio live</a> · <a href="/listen">24/7 station</a> · <a href="/new-releases">New releases</a> · <a href="/dance-videos">Dance videos</a></p>
+<p><strong>Charts and stories:</strong> <a href="/hot">Rising Now chart</a> · <a href="/hot/archive">Chart archive</a> · <a href="/best-jersey-club-songs">Best Jersey club songs</a> · <a href="/news">Stories</a> · <a href="/artists">Artists</a></p>
+<p><strong>Learn and make:</strong> <a href="/what-is-jersey-club">What is Jersey club?</a> · <a href="/jersey-club-vs-baltimore-club">Jersey vs Baltimore club</a> · <a href="/jersey-club-dances">Dances</a> · <a href="/jersey-club-bpm">BPM tool</a> · <a href="/jersey-club-kick-pattern">Kick pattern + MIDI</a> · <a href="/jersey-club-bed-squeak">Bed squeak</a> · <a href="/free-jersey-club-drum-kits">Free drum kits</a> · <a href="/games/beat-maker">Beat maker</a> · <a href="/games">Games</a></p>
+<p><strong>Jersey Club Radio:</strong> <a href="/about">About</a> · <a href="/contact">Contact</a> · <a href="/merch">Merch</a> · <a href="/pricing">Pricing</a> · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/refund-policy">Refunds</a></p>
+</footer>`;
+
 /** Fill the SPA shell with a page's head tags and static body */
-function page({ path, title, description, jsonLd, body, noindex = false, file }) {
+function page({ path, title: rawTitle, description: rawDescription, jsonLd, body, noindex = false, file, canonical, ogType }) {
   const url = SITE_URL + path;
+  const title = fitTitle(rawTitle);
+  const description = fitDescription(rawDescription);
   let html = template
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(title)}</title>`)
     .replace(/(<meta name="description" content=")[^"]*(")/, `$1${esc(description)}$2`)
-    .replace(/(<link rel="canonical" href=")[^"]*(")/, `$1${url}$2`)
+    .replace(/(<link rel="canonical" href=")[^"]*(")/, `$1${canonical ? SITE_URL + canonical : url}$2`)
+    .replace(/(<meta property="og:type" content=")[^"]*(")/, `$1${ogType || 'website'}$2`)
     .replace(/(<meta name="robots" content=")[^"]*(")/, noindex ? '$1noindex, follow$2' : '$&')
     .replace(/(<meta property="og:url" content=")[^"]*(")/, `$1${url}$2`)
     .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${esc(title)}$2`)
@@ -91,9 +116,11 @@ function page({ path, title, description, jsonLd, body, noindex = false, file })
     // Homepage-only content: the FAQ structured data and the "enable JavaScript" fallback
     .replace(/<script type="application\/ld\+json">(?:(?!<\/script>)[\s\S])*"FAQPage"[\s\S]*?<\/script>\s*/, '')
     .replace(/<!--[^>]*FAQPage[^>]*-->\s*/, '')
+    .replace(/<script type="application\/ld\+json">(?:(?!<\/script>)[\s\S])*"RadioStation"[\s\S]*?<\/script>\s*/, '')
+    .replace(/<!--[^>]*RadioStation[^>]*-->\s*/, '')
     .replace(/<noscript>[\s\S]*?<\/noscript>\s*/, '')
     .replace('</head>', `${jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>\n` : ''}${STYLE}\n</head>`)
-    .replace('<div id="root"></div>', `<div id="root"><main class="jc-static">${body}</main></div>`);
+    .replace('<div id="root"></div>', `<div id="root"><main class="jc-static">${body}</main>${FOOTER}</div>`);
   // `file`: write to this path under dist instead of <path>/index.html (used for 404.html)
   const out = file ? join(DIST, file) : join(DIST, path, 'index.html');
   if (!file) mkdirSync(join(DIST, path), { recursive: true });
@@ -111,27 +138,27 @@ for (const chart of published) {
   urls.push({ path: page({
     path,
     title: `Rising Now: Jersey Club Chart, Week of ${formatWeek(chart.week)} | Jersey Club Radio`,
-    description: `The ${chart.entries.length} hottest new Jersey club tracks for the week of ${formatWeek(chart.week)}, hand-picked by Jersey Club Radio. Top 3: ${top3}.`,
+    description: `The ${chart.entries.length} fastest-rising new Jersey club tracks for the week of ${formatWeek(chart.week)}. This week's #1: ${chart.entries[0].title} by ${chart.entries[0].artist}.`,
     jsonLd: chartJsonLd(chart, path),
     body: `<h1>Rising Now: Jersey Club Chart</h1><p>Week of ${formatWeek(chart.week)}. This week's hottest new Jersey club tracks, hand-picked by Jersey Club Radio, with the evidence for why each one is rising.</p>${nav}<ol>${chart.entries.map(rowHtml).join('')}</ol>${nav}<p><a href="/">Listen to Jersey Club Radio live</a></p>`,
   }), lastmod: chart.week });
   // Keep a dated URL for the latest week too, so links to it stay valid after next week
-  if (path === '/hot') urls.push({ path: page({
-    path: `/hot/${chart.week}`,
+  if (path === '/hot') page({
+    path: `/hot/${chart.week}`, canonical: '/hot',
     title: `Rising Now: Jersey Club Chart, Week of ${formatWeek(chart.week)} | Jersey Club Radio`,
     description: `The hottest new Jersey club tracks for the week of ${formatWeek(chart.week)}. Top 3: ${top3}.`,
     jsonLd: chartJsonLd(chart, `/hot/${chart.week}`),
     body: `<h1>Rising Now: Jersey Club Chart</h1><p>Week of ${formatWeek(chart.week)}.</p>${nav}<ol>${chart.entries.map(rowHtml).join('')}</ol>`,
-  }), lastmod: chart.week });
+  });
 }
 
 if (published.length) {
   urls.push({ path: page({
     path: '/hot/archive',
     title: 'Rising Now Chart Archive | Jersey Club Radio',
-    description: `Every weekly Rising Now Jersey club chart from Jersey Club Radio, ${published.length} week${published.length === 1 ? '' : 's'} and counting.`,
+    description: `Every weekly Rising Now chart from Jersey Club Radio: ${published.length} week${published.length === 1 ? '' : 's'} of the fastest-rising new Jersey club tracks, with each week's #1 and full top 20.`,
     jsonLd: { '@context': 'https://schema.org', '@type': 'CollectionPage', name: 'Rising Now Chart Archive', url: `${SITE_URL}/hot/archive` },
-    body: `<h1>Rising Now Archive</h1><ol>${published.map(c => `<li class="jc-row"><div class="jc-main"><a href="${weekPath(c.week)}">Week of ${formatWeek(c.week)}</a><br><small>#1: ${esc(c.entries[0].title)} by ${esc(c.entries[0].artist)}</small></div></li>`).join('')}</ol>`,
+    body: `<h1>Rising Now Archive</h1><p>Every Monday, Jersey Club Radio publishes Rising Now, a chart of the new Jersey club tracks gaining the most plays, reposts and attention that week. Each chart lists the evidence for why a track is rising, the producer, the tempo and where to stream it. Pick a week below to see its full chart.</p><ol>${published.map(c => `<li class="jc-row"><div class="jc-main"><a href="${weekPath(c.week)}">Week of ${formatWeek(c.week)}</a><br><small>#1: ${esc(c.entries[0].title)} by ${esc(c.entries[0].artist)}</small></div></li>`).join('')}</ol>`,
   }), lastmod: latest });
 
   const slugs = [...new Set(published.flatMap(c => c.entries.map(e => producerSlug(e.producer))))];
@@ -144,10 +171,10 @@ if (published.length) {
     writeFileSync(join(DIST, 'badges', `${slug}.svg`), badgeSvg({ name: h.name, rank: peak.rank, week: peak.week }));
     urls.push({ path: page({
       path,
-      title: `${h.name}: Jersey Club Producer Chart History | Jersey Club Radio`,
-      description: `${h.name} has ${h.tracks.length} track${h.tracks.length === 1 ? '' : 's'} on Jersey Club Radio's Rising Now chart, including ${h.tracks[0].title} (peak #${h.tracks[0].bestRank}).`,
+      title: `${h.name}: Jersey Club Producer Chart History`,
+      description: `${h.name} has ${h.tracks.length} track${h.tracks.length === 1 ? '' : 's'} on Jersey Club Radio's weekly Rising Now chart, including ${h.tracks[0].title} (peak #${h.tracks[0].bestRank}). See every week they charted.`,
       jsonLd: producerJsonLd(h, path),
-      body: `<h1>${esc(h.name)}</h1><p>Jersey club producer · ${h.tracks.length} charted track${h.tracks.length === 1 ? '' : 's'}</p><ol>${h.tracks.map(t => `<li class="jc-row"><div class="jc-main"><strong>${esc(t.title)}</strong> — ${esc(t.artist)}<br><small>Peak #${t.bestRank} · ${t.weeks.map(w => `<a href="${weekPath(w.week)}">#${w.rank} week of ${formatWeek(w.week)}</a>`).join(' · ')}</small></div></li>`).join('')}</ol><h2>Charted on Jersey Club Radio</h2><p><img src="/badges/${slug}.svg" alt="${esc(h.name)}: Rising Now #${peak.rank} on Jersey Club Radio" width="300" height="100"></p><p><a href="/hot">This week's chart</a></p>`,
+      body: `<h1>${esc(h.name)}</h1><p>Jersey club producer · ${h.tracks.length} charted track${h.tracks.length === 1 ? '' : 's'}</p><ol>${h.tracks.map(t => `<li class="jc-row"><div class="jc-main"><strong>${esc(t.title)}</strong> — ${esc(t.artist)}<br><small>Peak #${t.bestRank} · ${t.weeks.map(w => `<a href="${weekPath(w.week)}">#${w.rank} week of ${formatWeek(w.week)}</a>`).join(' · ')}</small></div></li>`).join('')}</ol><h2>About the Rising Now chart</h2><p>Rising Now is Jersey Club Radio's weekly chart of the new Jersey club tracks picking up the most momentum: plays, reposts and attention from the scene. It is published every Monday, and every entry lists the producer, so producers like ${esc(h.name)} get credit for the beats behind the songs. Click any week above to see the full chart that week.</p><h2>Charted on Jersey Club Radio</h2><p><img src="/badges/${slug}.svg" alt="${esc(h.name)}: Rising Now #${peak.rank} on Jersey Club Radio" width="300" height="100"></p><p>Producers can embed this badge on their own site or link in bio. <a href="/contact">Get in touch</a> for the embed code or to correct a credit.</p><p><a href="/hot">This week's chart</a> · <a href="/hot/archive">All weeks</a></p>`,
     }), lastmod: h.tracks.flatMap(t => t.weeks.map(w => w.week)).sort().at(-1) });
   }
 }
@@ -166,7 +193,7 @@ for (const a of news) {
     path,
     title: `${a.title} | Jersey Club Radio`,
     description: a.description ?? a.dek,
-    jsonLd: articleJsonLd(a),
+    jsonLd: articleJsonLd(a), ogType: 'article',
     body: `<article><p><small>${esc(a.tag)}</small></p><h1>${esc(a.title)}</h1><p><em>${esc(a.dek)}</em></p><p><small>By ${AUTHORS[a.author] ? `<a href="${esc(AUTHORS[a.author].url)}" rel="author">${esc(a.author)}</a>` : esc(a.author)} · ${esc(a.date)}</small></p>${a.body.map(blockHtml).join('')}<h2>Sources</h2><ul>${a.sources.map(s => `<li>${esc(s.publication)}: <a href="${esc(s.url)}" rel="noopener">${esc(s.title)}</a></li>`).join('')}</ul><p>Share: <a href="${esc(share.x)}">X</a> · <a href="${esc(share.facebook)}">Facebook</a> · <a href="${esc(share.whatsapp)}">WhatsApp</a></p><p><a href="/news">More stories</a> · <a href="/hot">This week's Rising Now chart</a></p></article>`,
   }), lastmod: a.date });
 }
@@ -174,9 +201,9 @@ if (news.length) {
   urls.push({ path: page({
     path: '/news',
     title: 'Jersey Club News & Stories | Jersey Club Radio',
-    description: `The history, the artists and the moments that built Jersey club: ${news.length} stories from Jersey Club Radio.`,
+    description: `The history, the artists and the moments that built Jersey club: ${news.length} reported stories from Jersey Club Radio, with sources, from Newark to TikTok.`,
     jsonLd: { '@context': 'https://schema.org', '@type': 'CollectionPage', name: 'Jersey Club Stories', url: `${SITE_URL}/news` },
-    body: `<h1>Jersey Club Stories</h1><ul>${news.map(a => `<li class="jc-row"><div class="jc-main"><a href="/news/${a.slug}"><strong>${esc(a.title)}</strong></a><br><small>${esc(a.dek)}</small></div></li>`).join('')}</ul>`,
+    body: `<h1>Jersey Club Stories</h1><p>Reported features on Jersey club music: where the sound came from in Newark, the DJs and producers who built it, the dances that grew up with it, and how it spread worldwide. Every story lists its sources.</p><ul>${news.map(a => `<li class="jc-row"><div class="jc-main"><a href="/news/${a.slug}"><strong>${esc(a.title)}</strong></a><br><small>${esc(a.dek)}</small></div></li>`).join('')}</ul>`,
   }), lastmod: news[0].date });
 }
 
@@ -232,7 +259,7 @@ try {
     page({
       path, title: seo.title, description: seo.description,
       jsonLd: { '@context': 'https://schema.org', '@type': 'ProfilePage', url: SITE_URL + path, ...(profile ? { dateModified: PROFILES_UPDATED } : {}),
-        mainEntity: { '@type': 'Person', name: a.name, jobTitle: a.role, description: plainIntro || String(a.bio || '').slice(0, 500), url: SITE_URL + path, ...(a.photoUrl ? { image: a.photoUrl } : {}), ...(socials.length ? { sameAs: socials } : {}), genre: 'Jersey club',
+        mainEntity: { '@type': 'Person', name: a.name, jobTitle: a.role, description: plainIntro || String(a.bio || '').slice(0, 500), url: SITE_URL + path, ...(a.photoUrl ? { image: a.photoUrl } : {}), ...(socials.length ? { sameAs: socials } : {}),
           ...(profile?.sources?.find(s => /wikipedia\.org/.test(s.url)) ? { sameAs: [...socials, profile.sources.find(s => /wikipedia\.org/.test(s.url)).url] } : {}) } },
       body: `<h1>${esc(a.name)}</h1><p><strong>${esc(a.role || 'Jersey club artist')}</strong></p>${a.photoUrl ? `<img src="${esc(a.photoUrl)}" alt="${esc(a.name)}" width="240" style="border-radius:12px">` : ''}${profile ? '' : String(a.bio || '').split(/\n+/).filter(Boolean).map(p => `<p>${esc(p)}</p>`).join('')}${socials.length ? `<p>${socials.map(s => `<a href="${esc(s)}" rel="noopener">${esc(new URL(s).hostname.replace('www.', ''))}</a>`).join(' · ')}</p>` : ''}${profile ? profileHtml(a.name, profile) : ''}<p><a href="/artists">All Jersey club artists</a> · <a href="/">Listen to Jersey Club Radio</a></p>`,
     });
@@ -258,7 +285,7 @@ if (artistList.length) {
 page({
   path: LISTEN.path, title: LISTEN.title, description: LISTEN.description,
   jsonLd: { '@context': 'https://schema.org', '@graph': [
-    { '@type': 'RadioStation', name: 'Jersey Club Radio', url: SITE_URL, description: LISTEN.answer, genre: 'Jersey club', isAccessibleForFree: true },
+    { '@type': 'RadioStation', '@id': `${SITE_URL}/#station`, name: 'Jersey Club Radio', url: SITE_URL, description: LISTEN.answer, image: `${SITE_URL}/og-image.jpg`, address: { '@type': 'PostalAddress', addressRegion: 'NJ', addressCountry: 'US' }, isAccessibleForFree: true },
     { '@type': 'FAQPage', mainEntity: LISTEN.faq.map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) },
   ] },
   body: `<h1>${esc(LISTEN.heading)}</h1><p>${esc(LISTEN.answer)}</p><p><a href="/">Listen live now</a></p>
@@ -276,7 +303,7 @@ for (const g of GUIDES) {
   page({
     path: g.path, title: g.title, description: g.description,
     jsonLd: { '@context': 'https://schema.org', '@graph': [
-      { '@type': 'Article', headline: g.heading, description: g.description, url: SITE_URL + g.path, mainEntityOfPage: SITE_URL + g.path,
+      { '@type': 'Article', image: [`${SITE_URL}/og-image.jpg`], headline: g.heading, description: g.description, url: SITE_URL + g.path, mainEntityOfPage: SITE_URL + g.path,
         datePublished: g.updated, dateModified: g.updated, inLanguage: 'en-US', author: authorJsonLd('Robert Van Liew'),
         publisher: { '@type': 'Organization', name: 'Jersey Club Radio', url: SITE_URL }, about: { '@type': 'Thing', name: 'Jersey club', sameAs: 'https://en.wikipedia.org/wiki/Jersey_club' },
         citation: g.sources.map(s => ({ '@type': 'CreativeWork', name: s.name, url: s.url })) },
@@ -316,7 +343,7 @@ urls.push({ path: BPM_PAGE.path, lastmod: BPM_PAGE.updated, changefreq: 'monthly
   page({
     path: BEST_SONGS.path, title: BEST_SONGS.title, description: BEST_SONGS.description,
     jsonLd: { '@context': 'https://schema.org', '@graph': [
-      { '@type': 'Article', headline: BEST_SONGS.heading, description: BEST_SONGS.description, url: SITE_URL + BEST_SONGS.path, datePublished: BEST_SONGS.updated, dateModified: BEST_SONGS.updated, author: authorJsonLd('Robert Van Liew'), publisher: { '@type': 'Organization', name: 'Jersey Club Radio', url: SITE_URL } },
+      { '@type': 'Article', image: [`${SITE_URL}/og-image.jpg`], headline: BEST_SONGS.heading, description: BEST_SONGS.description, url: SITE_URL + BEST_SONGS.path, datePublished: BEST_SONGS.updated, dateModified: BEST_SONGS.updated, author: authorJsonLd('Robert Van Liew'), publisher: { '@type': 'Organization', name: 'Jersey Club Radio', url: SITE_URL } },
       { '@type': 'ItemList', name: BEST_SONGS.heading, numberOfItems: all.length, itemListElement: all.map((s, i) => ({ '@type': 'ListItem', position: i + 1, item: { '@type': 'MusicRecording', name: s.title, byArtist: { '@type': 'MusicGroup', name: s.artist }, genre: 'Jersey club', ...(s.year && /^d{4}$/.test(s.year) ? { datePublished: s.year } : {}) } })) },
     ] },
     body: `<article><h1>${esc(BEST_SONGS.heading)}</h1><p><small>By <a href="https://robertvanliew.com" rel="author">Robert Van Liew</a> · Last updated ${esc(BEST_SONGS.updated)} · ${all.length} songs</small></p><p>${esc(BEST_SONGS.answer)}</p>
@@ -346,7 +373,7 @@ urls.push({ path: KICK_PAGE.path, lastmod: KICK_PAGE.updated, changefreq: 'month
 page({
   path: SQUEAK_PAGE.path, title: SQUEAK_PAGE.title, description: SQUEAK_PAGE.description,
   jsonLd: { '@context': 'https://schema.org', '@graph': [
-    { '@type': 'Article', headline: SQUEAK_PAGE.heading, description: SQUEAK_PAGE.description, url: SITE_URL + SQUEAK_PAGE.path, datePublished: SQUEAK_PAGE.updated, dateModified: SQUEAK_PAGE.updated, author: authorJsonLd('Robert Van Liew'), publisher: { '@type': 'Organization', name: 'Jersey Club Radio', url: SITE_URL }, about: { '@type': 'MusicRecording', name: 'Some Cut', byArtist: { '@type': 'MusicGroup', name: 'Trillville' } } },
+    { '@type': 'Article', image: [`${SITE_URL}/og-image.jpg`], headline: SQUEAK_PAGE.heading, description: SQUEAK_PAGE.description, url: SITE_URL + SQUEAK_PAGE.path, datePublished: SQUEAK_PAGE.updated, dateModified: SQUEAK_PAGE.updated, author: authorJsonLd('Robert Van Liew'), publisher: { '@type': 'Organization', name: 'Jersey Club Radio', url: SITE_URL }, about: { '@type': 'MusicRecording', name: 'Some Cut', byArtist: { '@type': 'MusicGroup', name: 'Trillville' } } },
     { '@type': 'FAQPage', mainEntity: SQUEAK_PAGE.faq.map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) },
   ] },
   body: `<article><h1>${esc(SQUEAK_PAGE.heading)}</h1><p><small>By <a href="https://robertvanliew.com" rel="author">Robert Van Liew</a> · Last updated ${esc(SQUEAK_PAGE.updated)}</small></p><p>${esc(SQUEAK_PAGE.answer)}</p>
@@ -403,7 +430,7 @@ ${artistList.length ? `<h2>Jersey club artists</h2><ul>${artistList.map(a => `<l
 writeFileSync(join(DIST, 'index.html'), template
   .replace(/<noscript>[\s\S]*?<\/noscript>\s*/, '')
   .replace('</head>', `${STYLE}\n</head>`)
-  .replace('<div id="root"></div>', `<div id="root"><main class="jc-static">${homeBody}</main></div>`));
+  .replace('<div id="root"></div>', `<div id="root"><main class="jc-static">${homeBody}</main>${FOOTER}</div>`));
 
 // ── llms.txt: a plain map of the site for AI assistants ──
 const md = s => String(s).replace(/\s+/g, ' ').trim();

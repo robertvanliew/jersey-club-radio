@@ -4,7 +4,7 @@
 
 export const KICK_PAGE = {
   path: '/jersey-club-kick-pattern',
-  title: 'Jersey Club Kick Pattern: Free MIDI + Play It in Your Browser',
+  title: 'Jersey Club Kick Pattern: Free MIDI, WAV + Browser Player',
   description: 'Hear the classic Jersey club kick pattern, edit it, and download it free as MIDI or a WAV loop for FL Studio, Ableton, BandLab or GarageBand.',
   heading: 'The Jersey club kick pattern',
   updated: '2026-11-05',

@@ -19,8 +19,13 @@ export function movement(e) {
 
 /** "DJ Sliink" -> "dj-sliink" */
 export function producerSlug(name) {
-  return String(name).toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '')
+  const slug = String(name).toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '')
     .replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  if (slug) return slug;
+  // Names with no letters or digits (e.g. an emoji) would give an empty slug and a
+  // "/producers/" URL that redirects. Use the code points instead: "🕷" -> "producer-1f577".
+  const codes = [...String(name).trim()].map(c => c.codePointAt(0).toString(16)).join('-');
+  return codes ? `producer-${codes}` : 'producer';
 }
 
 /** "2026-09-28" -> "Sept 28, 2026" */

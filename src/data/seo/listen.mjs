@@ -3,7 +3,7 @@
 
 export const LISTEN = {
   path: '/listen',
-  title: 'Jersey Club Radio Station: Listen to Jersey Club Music 24/7, Free',
+  title: 'Jersey Club Radio Station: Listen to Jersey Club 24/7, Free',
   description: 'Jersey Club Radio is a free online radio station that plays only Jersey club music, 24 hours a day. No sign-up, no app, no ads between songs. Press play.',
   heading: 'Listen to Jersey club radio, 24/7',
   answer: 'Jersey Club Radio is a free online radio station that plays only Jersey club music, 24 hours a day, 7 days a week. It runs in your browser on any phone or computer with no sign-up and no app, and everyone listening hears the same live mix, blended from one track into the next like a DJ set.',

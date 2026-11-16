@@ -6,7 +6,7 @@
 
 export const ROUTE_SEO = {
   '/': {
-    title: 'Jersey Club Radio | 24/7 Jersey Club Music Station & Weekly Chart',
+    title: 'Jersey Club Radio | 24/7 Jersey Club Music Station & Chart',
     description: 'Listen to Jersey club music 24/7, free. Non-stop Jersey club from DJ Sliink, UNIIQU3, DJ Jayhood and more, plus the weekly Rising Now chart.',
     intro: 'Jersey Club Radio streams Jersey club music 24/7 for free: the Newark sound from pioneers like DJ Tameil to today\'s producers, plus a weekly chart of the fastest-rising Jersey club tracks.',
   },
@@ -28,7 +28,7 @@ export const ROUTE_SEO = {
     noindex: true,
   },
   '/artists': {
-    title: 'Jersey Club Artists & DJs | DJ Sliink, UNIIQU3, DJ Tameil and More',
+    title: 'Jersey Club Artists & DJs: Sliink, UNIIQU3, Tameil and More',
     description: 'Profiles of the DJs, producers and artists who built Jersey club, from pioneer DJ Tameil to DJ Sliink, UNIIQU3, DJ Jayhood, DJ Lilman and DJ Taj.',
     intro: 'Profiles of the DJs, producers and artists behind Jersey club music.',
   },
@@ -39,11 +39,11 @@ export const ROUTE_SEO = {
   },
   '/merch': {
     title: 'Jersey Club Radio Merch | Official Apparel',
-    description: 'Official Jersey Club Radio merch: shirts, hoodies and accessories for Jersey club fans.',
+    description: 'Official Jersey Club Radio merch: shirts, hoodies and accessories for Jersey club fans. Rep the 24/7 station and the Newark sound wherever you go.',
     intro: 'Official Jersey Club Radio merch for Jersey club fans.',
   },
   '/games': {
-    title: 'Jersey Club Games | Spades, Blackjack, Chess and a Beat Maker',
+    title: 'Jersey Club Games: Spades, Blackjack, Chess and a Beat Maker',
     description: 'Play free games while you listen to Jersey club radio: spades, blackjack, chess, checkers, crosswords and a Jersey club beat maker.',
     intro: 'Free games to play while you listen: spades, blackjack, chess, checkers, crosswords and a Jersey club beat maker.',
   },
@@ -60,25 +60,29 @@ export const ROUTE_SEO = {
   },
   '/contact': {
     title: 'Contact & Advertise | Jersey Club Radio',
-    description: 'Advertise or sponsor on Jersey Club Radio, book DJs, or reach us for press and partnerships.',
+    description: 'Contact Jersey Club Radio to advertise or sponsor the station, book a Jersey club DJ, or reach us about press, partnerships and general questions.',
     intro: 'Advertising, sponsorship, bookings, press and general inquiries.',
   },
-  '/terms': { title: 'Terms of Service | Jersey Club Radio', description: 'Terms of service for Jersey Club Radio.', intro: 'Terms of service.' },
-  '/privacy': { title: 'Privacy Policy | Jersey Club Radio', description: 'How Jersey Club Radio collects and uses data.', intro: 'Privacy policy.' },
-  '/pricing': { title: 'Pricing | Jersey Club Radio', description: 'Jersey Club Radio is free to listen. See optional upgrades.', intro: 'Pricing.' },
-  '/refund-policy': { title: 'Refund Policy | Jersey Club Radio', description: 'Refund policy for Jersey Club Radio purchases.', intro: 'Refund policy.' },
+  '/terms': { title: 'Terms of Service | Jersey Club Radio', description: 'The terms for using Jersey Club Radio: listening to the station, chat, games, purchases and how to reach us with questions about them.', intro: 'The terms that apply when you use Jersey Club Radio: listening to the station, chatting, playing games and making purchases. Questions about them? Use the contact page.' },
+  '/privacy': { title: 'Privacy Policy | Jersey Club Radio', description: 'How Jersey Club Radio collects, uses and protects information when you listen, chat or play games, including analytics, and how to contact us.', intro: 'How Jersey Club Radio collects, uses and protects information when you listen, chat or play games, including analytics, and how to contact us about your data.' },
+  '/pricing': { title: 'Pricing | Jersey Club Radio', description: 'Jersey Club Radio is free to listen 24/7 with no account needed. Compare the optional upgrades and what each one includes.', intro: 'Jersey Club Radio is free to listen 24/7, with no account needed. Optional upgrades are listed here with what each one includes.' },
+  '/refund-policy': { title: 'Refund Policy | Jersey Club Radio', description: 'How refunds work for Jersey Club Radio purchases and upgrades: what qualifies for a refund and how to request one from our team.', intro: 'How refunds work for Jersey Club Radio purchases and upgrades, what qualifies, and how to request one.' },
   // Personal / utility pages: kept out of search results
   '/queue': { title: 'Your Queue | Jersey Club Radio', description: 'Your listening queue.', noindex: true },
   '/crate': { title: 'Your Crate | Jersey Club Radio', description: 'Your saved tracks.', noindex: true },
   '/admin': { title: 'Admin | Jersey Club Radio', description: 'Admin.', noindex: true },
 };
 
+// Titles over ~60 characters get cut off in search results: drop the brand suffix first
+const SUFFIX = ' | Jersey Club Radio';
+const fit = t => (t.length > 60 && t.endsWith(SUFFIX) ? t.slice(0, -SUFFIX.length) : t);
+
 /** Artist profile SEO from an artist record (name, role, bio) */
 export function artistSeo(a) {
   const bio = String(a.bio || '').replace(/\s+/g, ' ').trim();
   const short = bio.length > 150 ? bio.slice(0, bio.lastIndexOf(' ', 147)) + '…' : bio;
   return {
-    title: `${a.name} | Jersey Club ${a.role || 'Artist'} Profile | Jersey Club Radio`,
+    title: fit(`${a.name} | Jersey Club ${a.role || 'Artist'} Profile | Jersey Club Radio`),
     description: short || `${a.name}, Jersey club ${a.role || 'artist'}. Listen on Jersey Club Radio.`,
   };
 }

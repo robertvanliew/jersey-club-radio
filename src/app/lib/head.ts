@@ -9,7 +9,12 @@ function setMeta(attr: 'name' | 'property', key: string, content: string) {
   el.content = content;
 }
 
-export function setHead({ title, description, path, noindex = false }: { title: string; description: string; path: string; noindex?: boolean }) {
+// Same rule as the prerender: titles over ~60 characters drop the brand suffix
+const SUFFIX = ' | Jersey Club Radio';
+const fitTitle = (t: string) => (t.length > 60 && t.endsWith(SUFFIX) ? t.slice(0, -SUFFIX.length) : t);
+
+export function setHead({ title: rawTitle, description, path, noindex = false }: { title: string; description: string; path: string; noindex?: boolean }) {
+  const title = fitTitle(rawTitle);
   document.title = title;
   setMeta('name', 'description', description);
   setMeta('property', 'og:title', title);

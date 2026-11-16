@@ -5,7 +5,7 @@
 export const KITS_PAGE = {
   path: '/free-jersey-club-drum-kits',
   title: 'Free Jersey Club Drum Kits & Sample Packs (Checked, No Spam)',
-  description: 'Hand-checked free Jersey club drum kits, sample packs and loops, linked to each creator\'s own page, with the license for each. Plus how to avoid fake download pages.',
+  description: 'Hand-checked free Jersey club drum kits and sample packs, linked to each creator\'s own page with the license for each. Plus how to spot fake download pages.',
   heading: 'Free Jersey club drum kits and sample packs',
   checked: '2026-11-05',
   answer: 'The best free Jersey club pack with a clear license is Loop Cult\'s Brick City pack: 135 loops, 89 one-shots and 5 drum kits, royalty-free, on a pay-what-you-want page where $0 works. Looperman and Sample Focus also have hundreds of free Jersey club loops and one-shots. Every link below goes to the creator\'s own page, and each kit lists its license.',

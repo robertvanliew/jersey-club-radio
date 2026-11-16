@@ -6,7 +6,7 @@
 export const BEST_SONGS = {
   path: '/best-jersey-club-songs',
   title: 'Best Jersey Club Songs of All Time, by Era (2026)',
-  description: 'The essential Jersey club songs from Brick City classics to TikTok hits: DJ Tameil, Tim Dolla, DJ Sliink, Jayhood, UNIIQU3, Bandmanrill and more, with why each one matters.',
+  description: 'The essential Jersey club songs, from Brick City classics to TikTok hits: DJ Tameil, DJ Sliink, UNIIQU3, Bandmanrill and more, with why each one matters.',
   heading: 'The best Jersey club songs of all time',
   updated: '2026-11-05',
   answer: 'The essential Jersey club songs run from DJ Tameil\'s 2001 Dat Butt EP and Tim Dolla\'s "Swing Dat Shyt," through second-wave classics like DJ Sliink\'s "Vibrate" and Nadus\'s "Nxwxrk," to TikTok-era hits like Cookiee Kawaii\'s "Vibe (If I Back It Up)" and Lil Uzi Vert\'s MCVertt-produced "Just Wanna Rock." Here they are by era, with why each one matters.',

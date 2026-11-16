@@ -17,7 +17,7 @@ export const GUIDES = [
   {
     path: '/what-is-jersey-club',
     title: 'What Is Jersey Club Music? BPM, Sound, History and Artists',
-    description: 'Jersey club is a fast, bouncy dance music from Newark, New Jersey, at about 130 to 140 BPM. Its sound, history, key artists and dances, with music you can play right here.',
+    description: 'Jersey club is fast, bouncy dance music from Newark, New Jersey, at about 130 to 140 BPM. Its sound, history, key artists and dances, with music to play here.',
     heading: 'What is Jersey club music?',
     updated: '2026-11-05',
     answer: 'Jersey club is a high-energy style of dance music that started in Newark, New Jersey, in the late 1990s and early 2000s. It grew out of Baltimore club and usually runs at about 130 to 140 BPM, built on bursts of kick drums, chopped and repeated vocal samples, and playful sound effects like the famous bed squeak.',
@@ -130,8 +130,8 @@ export const GUIDES = [
   },
   {
     path: '/jersey-club-dances',
-    title: 'Jersey Club Dances: Running Man, Sexy Walk, Bunny Hop and More',
-    description: 'A guide to Jersey club dances: the Running Man, Sexy Walk, Pattycake, Bunny Hop, the Tang and the TikTok-era dances, with who made them famous and the songs behind them.',
+    title: 'Jersey Club Dances: Running Man, Sexy Walk, Bunny Hop + More',
+    description: 'A guide to Jersey club dances: the Running Man, Sexy Walk, Pattycake, Bunny Hop, the Tang and TikTok-era dances, who made them famous and the songs behind them.',
     heading: 'Jersey club dances',
     updated: '2026-11-05',
     answer: 'Jersey club dances are the party moves that grew up with Newark\'s club sound. The Running Man is the base step most others build on. Around it sit the Sexy Walk, the Pattycake, the Slide, the Bunny Hop and Rock Your Hips, plus older party dances like Lock It Up and TikTok-era challenges like the "Just Wanna Rock" dance.',
