@@ -25,7 +25,10 @@ jobs:
           [ "$code" = 200 ] || { echo "::error::Player health check failed (HTTP $code, status ${status:-unknown})"; exit 1; }
       - name: Check the Rising Now chart is current
         run: |
-          week=$(curl -s --max-time 30 https://jerseyclubradio.com/sitemap.xml | grep -o 'hot/[0-9-]\{10\}' | cut -c5- | sort | tail -1)
+          # The latest week is listed as /hot (its dated copy canonicalizes there and is left
+          # out of the sitemap), so take the newest of /hot's lastmod and the dated archive weeks.
+          curl -s --max-time 30 https://jerseyclubradio.com/sitemap.xml > sitemap.xml
+          week=$( { grep -o 'hot/[0-9-]\{10\}' sitemap.xml | cut -c5-; grep -A1 '/hot</loc>' sitemap.xml | grep -o '[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}'; } | sort | tail -1)
           age=$(( ( $(date -u +%s) - $(date -u -d "$week" +%s) ) / 86400 ))
           echo "Latest chart week: $week ($age days old)"
           echo "### Rising Now: week of $week ($age days old)" >> "$GITHUB_STEP_SUMMARY"
