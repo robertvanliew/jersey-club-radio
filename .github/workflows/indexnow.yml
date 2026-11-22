@@ -3,7 +3,8 @@
 # instead of waiting. Google doesn't use IndexNow; it reads the sitemap in Search Console.
 #
 # Changed pages = sitemap URLs whose <lastmod> is in the last 2 days (new chart week,
-# new or edited stories, artist updates). The key file lives at /<key>.txt (public/).
+# new or edited stories, artist updates), or every URL when a push touches the shared
+# templates (scripts/, public/, index.html). The key file lives at /<key>.txt (public/).
 name: IndexNow
 
 on:
@@ -44,7 +45,10 @@ jobs:
       - name: Submit changed URLs
         run: |
           curl -s https://$HOST/sitemap.xml > sitemap.xml
-          if [ "${{ inputs.all }}" = "true" ]; then since=0000-00-00; else since=$(date -u -d '2 days ago' +%Y-%m-%d); fi
+          # A push that touches the page templates (prerender script, index.html, public/)
+          # can change every page without moving any <lastmod>, so submit everything then.
+          sitewide=$(jq -r '[.commits[]? | (.added + .modified + .removed)[]] | map(select(startswith("scripts/") or startswith("public/") or . == "index.html")) | length' "$GITHUB_EVENT_PATH" 2>/dev/null || echo 0)
+          if [ "${{ inputs.all }}" = "true" ] || [ "${sitewide:-0}" -gt 0 ]; then since=0000-00-00; else since=$(date -u -d '2 days ago' +%Y-%m-%d); fi
           urls=$(awk -v since="$since" '/<loc>/{gsub(/.*<loc>|<\/loc>.*/,""); loc=$0} /<lastmod>/{gsub(/.*<lastmod>|<\/lastmod>.*/,""); if ($0 >= since) print loc}' sitemap.xml)
           urls=$(printf "%s\nhttps://%s/\nhttps://%s/hot\n" "$urls" "$HOST" "$HOST" | sort -u | grep .)
           echo "Submitting $(echo "$urls" | wc -l) URL(s):"; echo "$urls"
