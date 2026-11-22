@@ -2,7 +2,7 @@
 // Runs after `vite build`. Writes real HTML for the Rising Now chart pages so Google and
 // AI crawlers can read them without JavaScript:
 //   dist/hot/index.html, dist/hot/<week>/index.html, dist/hot/archive/index.html,
-//   dist/producers/<slug>/index.html, and dist/sitemap.xml (static pages + chart pages).
+//   dist/producers/index.html, dist/producers/<slug>/index.html, and dist/sitemap.xml (static pages + chart pages).
 // Each page gets its own <title>, description, canonical, Open Graph tags and JSON-LD, and
 // the chart as plain HTML inside #root. In the browser the React app then takes over
 // (createRoot replaces #root), so visitors get the normal interactive page.
@@ -13,7 +13,7 @@ import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   SITE_URL, movement, producerSlug, formatWeek, publishedWeeks, neighbours, producerHistory,
-  validateChart, chartJsonLd, producerJsonLd,
+  validateChart, chartJsonLd, producerJsonLd, allProducers,
 } from '../src/data/charts/chartUtils.mjs';
 import { publishedArticles, inlineSegments, articleJsonLd, shareLinks, AUTHORS, authorJsonLd } from '../src/data/news/newsUtils.mjs';
 import { ROUTE_SEO, artistSeo } from '../src/data/seo/routes.mjs';
@@ -92,7 +92,7 @@ const fitDescription = d => {
 // Site-wide links on every prerendered page, so no indexable page is an orphan
 const FOOTER = `<footer class="jc-static" style="border-top:1px solid rgba(157,0,255,.15);font-size:.8rem;line-height:1.9">
 <p><strong>Listen:</strong> <a href="/">Jersey Club Radio live</a> · <a href="/listen">24/7 station</a> · <a href="/new-releases">New releases</a> · <a href="/dance-videos">Dance videos</a></p>
-<p><strong>Charts and stories:</strong> <a href="/hot">Rising Now chart</a> · <a href="/hot/archive">Chart archive</a> · <a href="/best-jersey-club-songs">Best Jersey club songs</a> · <a href="/news">Stories</a> · <a href="/artists">Artists</a></p>
+<p><strong>Charts and stories:</strong> <a href="/hot">Rising Now chart</a> · <a href="/hot/archive">Chart archive</a> · <a href="/producers">Producers</a> · <a href="/best-jersey-club-songs">Best Jersey club songs</a> · <a href="/news">Stories</a> · <a href="/artists">Artists</a></p>
 <p><strong>Learn and make:</strong> <a href="/what-is-jersey-club">What is Jersey club?</a> · <a href="/jersey-club-vs-baltimore-club">Jersey vs Baltimore club</a> · <a href="/jersey-club-dances">Dances</a> · <a href="/jersey-club-bpm">BPM tool</a> · <a href="/jersey-club-kick-pattern">Kick pattern + MIDI</a> · <a href="/jersey-club-bed-squeak">Bed squeak</a> · <a href="/free-jersey-club-drum-kits">Free drum kits</a> · <a href="/games/beat-maker">Beat maker</a> · <a href="/games">Games</a></p>
 <p><strong>Jersey Club Radio:</strong> <a href="/about">About</a> · <a href="/contact">Contact</a> · <a href="/merch">Merch</a> · <a href="/pricing">Pricing</a> · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/refund-policy">Refunds</a></p>
 </footer>`;
@@ -158,7 +158,7 @@ if (published.length) {
     title: 'Rising Now Chart Archive | Jersey Club Radio',
     description: `Every weekly Rising Now chart from Jersey Club Radio: ${published.length} week${published.length === 1 ? '' : 's'} of the fastest-rising new Jersey club tracks, with each week's #1 and full top 20.`,
     jsonLd: { '@context': 'https://schema.org', '@type': 'CollectionPage', name: 'Rising Now Chart Archive', url: `${SITE_URL}/hot/archive` },
-    body: `<h1>Rising Now Archive</h1><p>Every Monday, Jersey Club Radio publishes Rising Now, a chart of the new Jersey club tracks gaining the most plays, reposts and attention that week. Each chart lists the evidence for why a track is rising, the producer, the tempo and where to stream it. Pick a week below to see its full chart.</p><ol>${published.map(c => `<li class="jc-row"><div class="jc-main"><a href="${weekPath(c.week)}">Week of ${formatWeek(c.week)}</a><br><small>#1: ${esc(c.entries[0].title)} by ${esc(c.entries[0].artist)}</small></div></li>`).join('')}</ol>`,
+    body: `<h1>Rising Now Archive</h1><p>Every Monday, Jersey Club Radio publishes Rising Now, a chart of the new Jersey club tracks gaining the most plays, reposts and attention that week. Each chart lists the evidence for why a track is rising, the producer, the tempo and where to stream it. Pick a week below to see its full chart.</p><ol>${published.map(c => `<li class="jc-row"><div class="jc-main"><a href="${weekPath(c.week)}">Week of ${formatWeek(c.week)}</a><br><small>#1: ${esc(c.entries[0].title)} by ${esc(c.entries[0].artist)}</small></div></li>`).join('')}</ol><p><a href="/producers">Every producer who has charted</a></p>`,
   }), lastmod: latest });
 
   const slugs = [...new Set(published.flatMap(c => c.entries.map(e => producerSlug(e.producer))))];
@@ -174,9 +174,22 @@ if (published.length) {
       title: `${h.name}: Jersey Club Producer Chart History`,
       description: `${h.name} has ${h.tracks.length} track${h.tracks.length === 1 ? '' : 's'} on Jersey Club Radio's weekly Rising Now chart, including ${h.tracks[0].title} (peak #${h.tracks[0].bestRank}). See every week they charted.`,
       jsonLd: producerJsonLd(h, path),
-      body: `<h1>${esc(h.name)}</h1><p>Jersey club producer · ${h.tracks.length} charted track${h.tracks.length === 1 ? '' : 's'}</p><ol>${h.tracks.map(t => `<li class="jc-row"><div class="jc-main"><strong>${esc(t.title)}</strong> — ${esc(t.artist)}<br><small>Peak #${t.bestRank} · ${t.weeks.map(w => `<a href="${weekPath(w.week)}">#${w.rank} week of ${formatWeek(w.week)}</a>`).join(' · ')}</small></div></li>`).join('')}</ol><h2>About the Rising Now chart</h2><p>Rising Now is Jersey Club Radio's weekly chart of the new Jersey club tracks picking up the most momentum: plays, reposts and attention from the scene. It is published every Monday, and every entry lists the producer, so producers like ${esc(h.name)} get credit for the beats behind the songs. Click any week above to see the full chart that week.</p><h2>Charted on Jersey Club Radio</h2><p><img src="/badges/${slug}.svg" alt="${esc(h.name)}: Rising Now #${peak.rank} on Jersey Club Radio" width="300" height="100"></p><p>Producers can embed this badge on their own site or link in bio. <a href="/contact">Get in touch</a> for the embed code or to correct a credit.</p><p><a href="/hot">This week's chart</a> · <a href="/hot/archive">All weeks</a></p>`,
+      body: `<h1>${esc(h.name)}</h1><p>Jersey club producer · ${h.tracks.length} charted track${h.tracks.length === 1 ? '' : 's'}</p><ol>${h.tracks.map(t => `<li class="jc-row"><div class="jc-main"><strong>${esc(t.title)}</strong> — ${esc(t.artist)}<br><small>Peak #${t.bestRank} · ${t.weeks.map(w => `<a href="${weekPath(w.week)}">#${w.rank} week of ${formatWeek(w.week)}</a>`).join(' · ')}</small></div></li>`).join('')}</ol><h2>About the Rising Now chart</h2><p>Rising Now is Jersey Club Radio's weekly chart of the new Jersey club tracks picking up the most momentum: plays, reposts and attention from the scene. It is published every Monday, and every entry lists the producer, so producers like ${esc(h.name)} get credit for the beats behind the songs. Click any week above to see the full chart that week.</p><h2>Charted on Jersey Club Radio</h2><p><img src="/badges/${slug}.svg" alt="${esc(h.name)}: Rising Now #${peak.rank} on Jersey Club Radio" width="300" height="100"></p><p>Producers can embed this badge on their own site or link in bio. <a href="/contact">Get in touch</a> for the embed code or to correct a credit.</p><p><a href="/hot">This week's chart</a> · <a href="/hot/archive">All weeks</a> · <a href="/producers">All producers</a></p>`,
     }), lastmod: h.tracks.flatMap(t => t.weeks.map(w => w.week)).sort().at(-1) });
   }
+
+  // Producer directory: gives every producer page a second internal link besides its chart week
+  const allProds = allProducers(published);
+  urls.push({ path: page({
+    path: '/producers',
+    title: 'Jersey Club Producers on the Rising Now Chart | Jersey Club Radio',
+    description: `Every Jersey club producer behind a track on Jersey Club Radio's weekly Rising Now chart: ${allProds.length} producers so far, with their charted tracks and peak positions.`,
+    jsonLd: {
+      '@context': 'https://schema.org', '@type': 'CollectionPage', name: 'Jersey Club Producers', url: `${SITE_URL}/producers`,
+      mainEntity: { '@type': 'ItemList', numberOfItems: allProds.length, itemListElement: allProds.map((p, i) => ({ '@type': 'ListItem', position: i + 1, url: `${SITE_URL}/producers/${p.slug}`, name: p.name })) },
+    },
+    body: `<h1>Jersey Club Producers</h1><p>Every producer behind a track on Jersey Club Radio's weekly Rising Now chart, A to Z. Rising Now credits the producer on every entry, because the beat is what makes a Jersey club record. Pick a producer to see each track they charted and the weeks it ranked.</p><ul>${allProds.map(p => `<li class="jc-row"><div class="jc-main"><a href="/producers/${p.slug}"><strong>${esc(p.name)}</strong></a><br><small>${p.tracks} charted track${p.tracks === 1 ? '' : 's'} · peak #${p.bestRank} · last charted ${formatWeek(p.lastWeek)}</small></div></li>`).join('')}</ul><p><a href="/hot">This week's chart</a> · <a href="/hot/archive">All weeks</a></p>`,
+  }), lastmod: latest });
 }
 
 // ── News: /news and /news/<slug> (drafts only with PRERENDER_PLACEHOLDERS=1) ──
@@ -451,6 +464,7 @@ ${md(e.definition)}
 ${GUIDES.map(g => `- [${md(g.heading)}](${SITE_URL}${g.path}): ${md(g.description)}`).join('\n')}
 - [Rising Now chart](${SITE_URL}/hot): The fastest-rising new Jersey club tracks, updated every Monday
 - [Chart archive](${SITE_URL}/hot/archive): Every past week of the Rising Now chart
+- [Producers](${SITE_URL}/producers): Every Jersey club producer who has charted on Rising Now
 - [Stories](${SITE_URL}/news): Features on Jersey club history, artists and dance culture
 - [Artists](${SITE_URL}/artists): Profiles of Jersey club DJs and producers
 - [New releases](${SITE_URL}/new-releases): The latest Jersey club songs and remixes

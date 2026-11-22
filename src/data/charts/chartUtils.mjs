@@ -74,6 +74,22 @@ export function producerHistory(charts, slug) {
 }
 
 /**
+ * Every producer who has charted, A to Z, for the /producers directory.
+ * @returns {{ name: string, slug: string, tracks: number, bestRank: number, lastWeek: string }[]}
+ */
+export function allProducers(charts) {
+  const slugs = [...new Set(charts.flatMap(c => c.entries.map(e => producerSlug(e.producer))))];
+  return slugs.map(slug => {
+    const h = producerHistory(charts, slug);
+    return {
+      name: h.name, slug, tracks: h.tracks.length,
+      bestRank: Math.min(...h.tracks.map(t => t.bestRank)),
+      lastWeek: h.tracks.flatMap(t => t.weeks.map(w => w.week)).sort().at(-1),
+    };
+  }).sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
+}
+
+/**
  * Producers to watch this week: points per charted track (#1 = 20 … #20 = 1),
  * +5 per breakout, +2 per new entry. Ties broken by best rank.
  * @returns {{ name: string, slug: string, points: number, tracks: number, bestRank: number, top: object }[]}
@@ -140,14 +156,9 @@ export function producerJsonLd(history, path) {
     name: history.name,
     url: SITE_URL + path,
     jobTitle: 'Music producer',
-    subjectOf: {
-      '@type': 'ItemList',
-      itemListElement: history.tracks.map((t, i) => ({
-        '@type': 'ListItem',
-        position: i + 1,
-        item: recordingLd({ ...t, producer: history.name }),
-      })),
-    },
+    // subjectOf takes a CreativeWork or Event, so list the recordings directly (an
+    // ItemList is Intangible and fails schema.org validation there)
+    subjectOf: history.tracks.map(t => recordingLd({ ...t, producer: history.name })),
   };
 }
 

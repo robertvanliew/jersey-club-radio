@@ -28,6 +28,7 @@ const ArtistDetail = lazy(() => import('./pages/ArtistDetail').then(m => ({ defa
 const HotPage = lazy(() => import('./pages/Hot').then(m => ({ default: m.HotPage })));
 const HotArchivePage = lazy(() => import('./pages/Hot').then(m => ({ default: m.HotArchivePage })));
 const ProducerPage = lazy(() => import('./pages/Hot').then(m => ({ default: m.ProducerPage })));
+const ProducersIndexPage = lazy(() => import('./pages/Hot').then(m => ({ default: m.ProducersIndexPage })));
 const NewsIndexPage = lazy(() => import('./pages/News').then(m => ({ default: m.NewsIndexPage })));
 const ArticlePage = lazy(() => import('./pages/News').then(m => ({ default: m.ArticlePage })));
 const ContactPage = lazy(() => import('./pages/Contact').then(m => ({ default: m.ContactPage })));
@@ -68,6 +69,7 @@ export const router = createBrowserRouter([
           { path: 'hot', Component: HotPage },
           { path: 'hot/archive', Component: HotArchivePage },
           { path: 'hot/:date', Component: HotPage },
+          { path: 'producers', Component: ProducersIndexPage },
           { path: 'producers/:slug', Component: ProducerPage },
           { path: 'news', Component: NewsIndexPage },
           { path: 'news/:slug', Component: ArticlePage },

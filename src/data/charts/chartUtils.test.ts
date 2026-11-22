@@ -1,7 +1,22 @@
 import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { movement, producerSlug, formatWeek, publishedWeeks, neighbours, validateChart, chartJsonLd, topProducers } from './chartUtils.mjs';
+import { movement, producerSlug, formatWeek, publishedWeeks, neighbours, validateChart, chartJsonLd, topProducers, allProducers } from './chartUtils.mjs';
+
+describe('allProducers', () => {
+  const e = (rank: number, title: string, producer: string) => ({ rank, title, artist: 'A', producer });
+  const charts = [
+    { week: '2026-01-05', entries: [e(3, 'One', 'zed'), e(1, 'Two', 'Amy')] },
+    { week: '2026-01-12', entries: [e(2, 'One', 'Zed'), e(5, 'Three', 'bob')] },
+  ];
+  it('lists each producer once, A to Z, with track count, peak and last week', () => {
+    expect(allProducers(charts)).toEqual([
+      { name: 'Amy', slug: 'amy', tracks: 1, bestRank: 1, lastWeek: '2026-01-05' },
+      { name: 'bob', slug: 'bob', tracks: 1, bestRank: 5, lastWeek: '2026-01-12' },
+      { name: 'Zed', slug: 'zed', tracks: 1, bestRank: 2, lastWeek: '2026-01-12' },
+    ]);
+  });
+});
 
 describe('movement', () => {
   it.each([
